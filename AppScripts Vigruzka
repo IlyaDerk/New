@@ -1,0 +1,5263 @@
+var scriptProperties = PropertiesService.getScriptProperties();
+
+//const SUBDOMAIN = 'kitchencrm'
+const REDIRECT_URI = 'https://script.google.com/';
+
+// Для первого запуска
+//const CLIENT_SECRET = 'Ge9t5VMn3OMDetnoYcCtmdJCXBsihXFGIa7GiCVMLD3G99CYI2i61CxUiYwpoSlb';
+//const CLIENT_ID = 'f463f03e-e0a5-4b17-b6e2-ff5e951b9d1f';
+//const Code_authentication = 'def502004a11264d96dba9cc5978da434b8d90d49129c5fce3adc48d9c97becb44fdda6a1dd1503388b34c5acc3512c284e3132c5f3713788f692198e481fe9d256755d25172646495c93ffb470caa4eeecea310ced2a23f8b2f72b7f281d2fb9b47ffcb6acf662e930fd82d29939262877738e07d834fb215fa2f1a57e017077f407eea700549f6182de45abe715df7c71508ce629551aba8e05e210b02d430f18e50ea0021160d98a3d75b1a5fb60a5dd96cf19a2678005001ed23d3aa329e49daf8277ad51d81ee75b4c070dd5c55ce17829d7271e8db4be2584ea4b5e14aa4cf73734d11b4d5e2f5edee5e1813d2ef6bc08ecd213c68f42d743e275d4191688f67c40cc93f309a33c21f8c7be9e7ea2f6874b9142bbb421c30cbc66d0b04ede71a2b354de239bc40470e8adf08e7b9eea5159013a9efac402b8bbc0b8d3dc0e76957eca6f9359f041de97e53d860a6a7c9bf06514311b68e70b45e0713f90adfa8e83af1e2c5efc9696d932b2376facd9becb90a88fda47264aa1880edaeedb67f3e631af366dfdcbab7293105a4b3c7771212430f82919ba663bf02686871dd8b1e4c1b1fb5d7ca148ce8d7e0228923fd627fd6715d3c1748fab238a6e6abd53f73aa515e5e8c8f94660ead43690b3336fa390215db03e3babdf01f76ba466499a31bdd1b2c735b82'
+
+var PIPELINE_ID = 5666989 // Чистовые материалы 24 этаж
+
+
+var Extract_field_id_deal = [
+  650561, // ID
+  650577, // Бренд
+  945929, // Стоимость мебели
+  964057, // Дата подписания
+  659039, // Дизайнер
+  791457  // Сметчик
+]
+
+
+var Extract_field_id_client = [
+  677029, //	Email
+  677027, //	Phone
+  677025, //	Position
+
+]
+
+var Extract_field_id_companies = [
+  1737040, //	Address
+  1737036, //	Email
+  1737034, //	Phone
+  1737038, //	Web
+]
+
+
+var Check_null_after_field_id_deal = [
+  // 1539919,
+  // 1539913,
+]
+
+
+var Field_id_deal_First_value = [
+  1540007, // Сумма оплаты
+  1540011, // Сумма (другое)
+  1544481, // Сумма 2-й части (факт)
+  1544483, // Сумма 3-й части (факт)
+  1728045, // Сумма 4-й части (факт)
+
+]
+
+
+var Date_status = [  // ID этапа | ID воронки
+  /*
+    [60262870, 7221478, 'very_first'],  // НОВЫЕ КЛИЕНТЫ / АБОНЕМЕНТЫ
+    [60589586, 7268702, 'start_end_3'], // HOLD
+    [60262874, 7221478, 'start_end_2'], // ОБУЧАЮТСЯ
+    [60262878, 7221478, 'start_end_2'], // ВЫСТАВЛЕН СЧЁТ (ПРОДЛЕНИЕ)
+    [142, 7221478, 'start'],  // УСПЕШНО РЕАЛИЗОВАНО
+    [143, 7221478, 'start'],  // ЗАКРЫТО И НЕ РЕАЛИЗОВАНО
+  */
+
+  [66903459, 8463735, 'start'], // Новий
+  [66903463, 8463735, 'start'], // Назначений менеджер
+  [66903467, 8463735, 'start'], // Взятий в роботу
+  [66903471, 8463735, 'start'], // Виявлена потреба
+  [67976875, 8463735, 'start'], // Ігнор/Нагадати
+  [66964311, 8463735, 'start'], // Виставлений рахунок
+  [66964315, 8463735, 'start'], // Внесений аванс
+  [66964319, 8463735, 'start'], // Оплчений та нереалізований
+  [66964323, 8463735, 'start'], // Апсейл
+  [142, 8463735, 'start'], // Успішний
+  [143, 8463735, 'start'], // Втрачений
+
+  //  ['любой', 7221470, 'start'], // Воронка "Условный отказ (Отдел Продаж)"
+
+]
+
+
+var Date_fields = [
+  // 1540007, // Сумма оплаты
+  // 1540011, // Сумма (другое)
+
+]
+
+
+var Field_id_deal_First_value = [
+  //  1540007, // Сумма оплаты
+  //  1540011, // Сумма (другое)
+  //  1544481, // Сумма 2-й части (факт)
+]
+
+
+// 1) Функция для получения токена - используется 1 раз
+function get_first_AccessToken() {
+
+  const tokenUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/oauth2/access_token';
+
+  const payload = {
+    client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
+    grant_type: 'authorization_code',
+    code: Code_authentication,
+    redirect_uri: REDIRECT_URI
+  };
+
+  const options = {
+    method: 'post',
+    contentType: 'application/x-www-form-urlencoded',
+    payload: Object.keys(payload).map(key => encodeURIComponent(key) + '=' + encodeURIComponent(payload[key])).join('&')
+  };
+
+  const response = UrlFetchApp.fetch(tokenUrl, options);
+  const tokenData = JSON.parse(response.getContentText());
+
+  console.log(tokenData)
+  scriptProperties.setProperty('Amo_Access_token', tokenData.access_token);
+  scriptProperties.setProperty('Amo_Refresh_token', tokenData.refresh_token);
+
+  get_Pipilines(tokenData.access_token) // Сохранить в кеш данные по ворокам
+  get_Deal_Custom_fields(tokenData.access_token) // Сохранить в кеш данные по пользовательским полям
+  get_Users(tokenData.access_token)
+  //  get_Contacts(tokenData.access_token)
+  //  get_Companies(tokenData.access_token)
+}
+
+
+// 2) Функция для обновления токена - используется раз в 24 часа
+function refresh_AccessToken() {
+  // --- Безопасное получение конфига: сначала из глобальных констант, иначе из Script Properties
+  function pick_(globalName, propKey) {
+    try {
+      if (typeof globalThis !== 'undefined' && typeof globalThis[globalName] !== 'undefined' && globalThis[globalName] !== null) {
+        return globalThis[globalName];
+      }
+    } catch (e) {}
+    return scriptProperties.getProperty(propKey);
+  }
+
+  var subdomain = pick_('SUBDOMAIN', 'AMO_SUBDOMAIN');
+  var clientId = pick_('CLIENT_ID', 'AMO_CLIENT_ID');
+  var clientSecret = pick_('CLIENT_SECRET', 'AMO_CLIENT_SECRET');
+
+  if (!subdomain) throw new Error('SUBDOMAIN не задан. Либо объяви const SUBDOMAIN, либо задай Script Property AMO_SUBDOMAIN');
+  if (!clientId) throw new Error('CLIENT_ID не задан. Либо объяви const CLIENT_ID, либо задай Script Property AMO_CLIENT_ID');
+  if (!clientSecret) throw new Error('CLIENT_SECRET не задан. Либо объяви const CLIENT_SECRET, либо задай Script Property AMO_CLIENT_SECRET');
+
+  var refreshToken = scriptProperties.getProperty('Amo_Refresh_token');
+  if (!refreshToken) throw new Error('Amo_Refresh_token пуст в Script Properties');
+
+  var tokenUrl = 'https://' + subdomain + '.amocrm.ru/oauth2/access_token';
+
+  var payloadObj = {
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken
+  };
+
+  var options = {
+    method: 'post',
+    muteHttpExceptions: true,
+    contentType: 'application/x-www-form-urlencoded',
+    payload: Object.keys(payloadObj)
+      .map(function (key) { return encodeURIComponent(key) + '=' + encodeURIComponent(payloadObj[key]); })
+      .join('&')
+  };
+
+  var response = UrlFetchApp.fetch(tokenUrl, options);
+  var code = response.getResponseCode();
+  var body = response.getContentText();
+
+  if (code < 200 || code >= 300) {
+    // amoCRM обычно возвращает JSON с описанием ошибки
+    throw new Error('refresh_AccessToken failed. HTTP ' + code + ' body=' + body);
+  }
+
+  var tokenData;
+  try {
+    tokenData = JSON.parse(body);
+  } catch (e) {
+    throw new Error('refresh_AccessToken: не смог распарсить JSON. body=' + body);
+  }
+
+  if (!tokenData.access_token) {
+    throw new Error('refresh_AccessToken: в ответе нет access_token. body=' + body);
+  }
+
+  // Сохраняем новые токены
+  scriptProperties.setProperty('Amo_Access_token', tokenData.access_token);
+  if (tokenData.refresh_token) {
+    scriptProperties.setProperty('Amo_Refresh_token', tokenData.refresh_token);
+  }
+
+  // Обновление кешей — НЕ должно ломать refresh, поэтому в try/catch
+  try { get_Pipilines(tokenData.access_token); } catch (e) { console.warn('get_Pipilines failed: ' + e); }
+  try { get_Deal_Custom_fields(tokenData.access_token); } catch (e) { console.warn('get_Deal_Custom_fields failed: ' + e); }
+  try { get_Users(tokenData.access_token); } catch (e) { console.warn('get_Users failed: ' + e); }
+
+  return tokenData.access_token;
+}
+
+
+
+
+
+var sheet_history = spreadsheet.getSheetByName('History')
+
+
+function get_Deals_manual() {
+  releaseLock_('lock_key_' + 'get_Deals')
+  get_Deals(null, 1)
+}
+
+// Функция для получения данных по сделкам
+function get_Deals(eventTrigger, num_page_part_start) {
+
+  //  throw new Error();
+
+
+  if (num_page_part_start == undefined) {
+    var num_page_part_start = Number(scriptProperties.getProperty('Amo_get_Deals_next_part')) || 1
+  }
+  console.log('num_page_part_start ' + num_page_part_start)
+
+
+  var name_function = new Error().stack.match(/at\s+([^\s\(]+)/)[1]
+  //  console.log('name_function: ' + name_function)
+
+  console.log('🔸 ' + name_function)
+
+
+  trigger_delete_by_name('get_Deals_triger')
+
+
+  if (isLocked_('lock_key_' + name_function)) {
+    console.error('Стоит блокировка запуска дубликата')
+  }
+  else {
+    console.log('Установить блокировку: ' + setLock_('lock_key_' + name_function, 6))
+
+    var num_by_part = 2
+
+    //  var PAGE_NUMBER = customSequence(num_page_part_start, num_by_part)
+    var first_PAGE_NUMBER = (num_page_part_start * num_by_part) - 1
+
+    var PAGE_NUMBER = first_PAGE_NUMBER
+    console.log('Начинаем со страницы ' + PAGE_NUMBER)
+    var RESULTS_PER_PAGE = 250
+
+    var all_num_pages = Number(scriptProperties.getProperty('Amo_Pages_' + name_function)) || 0
+    console.log('all_num_pages ' + all_num_pages)
+
+    /*
+        if (first_PAGE_NUMBER > all_num_pages) {
+          num_page_part_start = 1
+          first_PAGE_NUMBER = 1
+          PAGE_NUMBER = 1
+          console.log('Начинаем с 1 страницы')
+        }
+    */
+
+    //  var TIMESTAMP_FROM = getTimestamp_(-5) // с вчерашнего дня
+
+    var Access_token = scriptProperties.getProperty('Amo_Access_token')
+    console.log('Access_token ' + Access_token)
+
+    var data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines'))
+    //  console.log(data_pipelines)
+
+    var data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users'))
+    //  console.log(data_users)
+
+    var map_users = data_users.reduce((map, user) => {
+      map[user[0]] = user[1];
+      return map;
+    }, {});
+
+    /*
+        var data_contacts = get_Contacts(Access_token)
+        //  var data_contacts = readJsonFileToArray_(scriptProperties.getProperty('url_data_' + 'get_Contacts'))
+        //  console.log(data_contacts)
+    
+        var map_contacts = data_contacts.reduce((map, contact) => {
+          const [id, name, firstName, lastName, responsibleUser, createdBy, createdAt, deleted, tags, email, phone, position] = contact;
+          map[id] = {
+            name,
+            firstName,
+            lastName,
+            responsibleUser,
+            createdBy,
+            createdAt,
+            deleted,
+            tags,
+            email,
+            phone,
+            position
+          };
+          return map;
+        }, {});
+    */
+    //  var data_companies = get_Companies(Access_token)
+    //  var data_companies = readJsonFileToArray_(scriptProperties.getProperty('url_data_' + 'get_Companies'))
+    //  console.log(data_companies)
+
+    //  var data_Deal_Custom_fields = JSON.parse(scriptProperties.getProperty('Amo_Data_Deal_Custom_fields'))
+    //  var data_Contact_Custom_fields = JSON.parse(scriptProperties.getProperty('Amo_Data_Contact_Custom_fields'))
+    //  var data_Company_Custom_fields = JSON.parse(scriptProperties.getProperty('Amo_Data_Company_Custom_fields'))
+
+    //  var data_history_deal = get_all_History_lead_(Access_token, data_Deal_Custom_fields, data_Contact_Custom_fields, data_Company_Custom_fields, data_pipelines, data_users, data_companies, data_contacts)
+    //  var data_history_deal = get_main_History_lead(Access_token, data_pipelines, data_users, data_companies, data_contacts)
+    //  var data_history_deal = readJsonFileToArray_(scriptProperties.getProperty('url_data_' + 'get_main_History_lead'))
+    //  console.log(data_history_deal)
+
+    console.log('🔸 ' + name_function)
+
+
+
+    var num_part = num_page_part_start
+
+    var num_page_part = 1
+
+    var data_to_sheet = []
+
+    do {
+
+      if (num_page_part > num_by_part) {
+        console.log('! Хватит))')
+        PAGE_NUMBER = PAGE_NUMBER - 1
+        break
+      }
+
+      const apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/leads?' +
+        'filter[pipeline_id]=' + 6635110 + // Воронка
+        '&filter[created_at][from]=1704060000' +  // с 2024 года
+        //  '&filter[created_at][from]=' + TIMESTAMP_FROM +
+        //  '&filter[updated_at][from]=' + TIMESTAMP_FROM +
+        '&page=' + PAGE_NUMBER +
+        '&limit=' + RESULTS_PER_PAGE +
+        '&order[created_at]=asc' +
+        '&with=contacts,loss_reason,source_id';
+
+      console.log('apiUrl: \n' + apiUrl)
+
+      var options = {
+        method: 'get',
+        headers: {
+          'Authorization': 'Bearer ' + Access_token
+        }
+      };
+
+      //  console.log('🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 ')
+      console.log('Страница: ' + PAGE_NUMBER + '/' + all_num_pages)
+
+      try {
+        var response = UrlFetchApp.fetch(apiUrl, options);
+      }
+      catch (error) {
+        console.error('Ошибка: ' + error);
+
+        console.log('Пробуем обновить токен.')
+
+        var Access_token = refresh_AccessToken()
+
+        options.headers['Authorization'] = 'Bearer ' + Access_token;
+
+        var response = UrlFetchApp.fetch(apiUrl, options);
+      }
+
+
+      var content = response.getContentText();
+    //  console.log(JSON.stringify(content, null, 2))
+
+      if (!content) {
+        console.error("Ошибка: ответ от сервера пуст!");
+
+        scriptProperties.setProperty('Amo_get_Deals_next_part', 1);
+        scriptProperties.setProperty('Amo_Pages_' + name_function, 1);
+
+        console.log('Обновил scriptProperties')
+
+        // return;
+        break
+      }
+
+      const ApiData = JSON.parse(response.getContentText());
+      console.log(JSON.stringify(ApiData, null, 2))
+      // console.log(ApiData._embedded.leads)
+
+      var i = 1
+
+      for (const deal of ApiData._embedded.leads) {
+
+        //  var row_to_sheet = extract_row_field_id_(deal, data_pipelines, data_users, data_contacts, data_companies, data_history_deal)
+        var row_to_sheet = extract_row_field_id_(deal, data_pipelines, map_users)
+
+
+        //   console.log(row_to_sheet)
+        data_to_sheet.push(row_to_sheet)
+
+
+        //  console.log(i)
+        i++
+      }
+
+      //  console.log(data_to_sheet)
+
+      num_page_part = num_page_part + 1
+
+      if (ApiData._links && ApiData._links.next) {
+        PAGE_NUMBER++;
+      } else {
+        scriptProperties.setProperty('Amo_get_Deals_next_part', 1)
+        scriptProperties.setProperty('Amo_Pages_' + name_function, (Number(PAGE_NUMBER) - 1))
+
+        break;
+      }
+
+    } while (true);
+
+
+    console.log('Делаю небольшие правки массива')
+
+    var data_to_sheet = sort_By_Column_(data_to_sheet, 1, 1)
+
+    var column_convert_number = [
+      7, // бюджет
+      14 // сумма
+    ]
+
+    // конвертирую числа оплат
+    for (const row of data_to_sheet) {
+      for (const col_conv of column_convert_number) {
+        if (Number(row[col_conv]) > 0) {
+          try {
+            row[col_conv] = String(row[col_conv]).replace('.', ',');
+          }
+          catch (error) {
+            console.error(`Ошибка: ${error}` + '\n' + row[col_conv]);
+          }
+        }
+      }
+    }
+
+
+
+
+    var column_convert_date = [
+      [1, 1],
+      [2, 1],
+
+      [15, 0],
+    ]
+
+    // конвертирую даты
+    for (var row of data_to_sheet) {
+      for (var col_conv of column_convert_date) {
+        row[col_conv[0]] = convertUnixTimeToNormalDate_(row[col_conv[0]], col_conv[1])
+      }
+    }
+
+
+    /*
+        // конвертирую даты
+        console.log('конвертирую даты')
+        for (const row of data_to_sheet) {
+          for (let i = 0; i < row.length; i++) {
+            // Проверка, является ли содержимое ячейки датой в формате Unix
+            if (Number(row[i]) > 1000000000) { // предполагая, что Unix-время больше чем 1000000000
+              let dateObj = new Date(row[i] * 1000);
+    
+              // Если значение является "чистой" датой (без часов, минут и секунд) или время ровно 1:00:00, то includeTime будет 0, иначе 1
+              let includeTime = (dateObj.getHours() === 0 && dateObj.getMinutes() === 0 && dateObj.getSeconds() === 0) ||
+                (dateObj.getHours() === 1 && dateObj.getMinutes() === 0 && dateObj.getSeconds() === 0) ? 0 : 1;
+    
+              row[i] = convertUnixTimeToNormalDate_(row[i], includeTime);
+            }
+          }
+        }
+    */
+
+
+
+
+    var dlina = data_to_sheet.length
+    var shirina = getMaxWidth(data_to_sheet)
+
+    console.log('dlina ' + dlina)
+
+    if (dlina > 0) {
+      console.log('shirina ' + shirina)
+
+      get_size_data_(data_to_sheet)
+
+      for (let i = 0; i < data_to_sheet.length; i++) {
+        if (data_to_sheet[i].length !== shirina) {
+          //  console.log("Row " + i + " has " + data_to_sheet[i].length + " columns, expected " + shirina);
+        }
+      }
+
+      //  var sheet1 = SpreadsheetApp.getActive().getSheetByName('Выгрузка ' + num_part)
+      var sheet1 = SpreadsheetApp.getActive().getSheetByName('Сделки')
+      //  sheet1.getRange(2, 1, dlina, shirina).setValues(data_to_sheet)
+
+      var max_dlina = RESULTS_PER_PAGE * num_by_part
+      console.log('max_dlina ' + max_dlina)
+
+      var row_to_set = ((RESULTS_PER_PAGE * (first_PAGE_NUMBER - 1)) + 2)
+
+      console.log('row_to_set ' + row_to_set)
+
+      sheet1.getRange(row_to_set, 1, dlina, shirina).setValues(data_to_sheet)
+
+      console.log('Последняя строка с данными Факт ' + (row_to_set + dlina - 1))
+
+      console.log('Макс возможная строка с данными ' + (max_dlina + row_to_set - 1))
+
+
+      try {
+        //  sheet1.getRange(dlina + 2, 1, sheet1.getMaxRows() - dlina + 2, sheet1.getMaxColumns()).clear({ contentsOnly: true, skipFilteredRows: true })
+        if (dlina < max_dlina) {
+          var startRowToClear = row_to_set + dlina;
+          var numRowsToClear = max_dlina - dlina
+          console.log('Очищаем с ' + startRowToClear + '\n' + 'По ' + numRowsToClear)
+          sheet1.getRange(startRowToClear, 1, numRowsToClear, shirina).clearContent();
+        }
+      }
+      catch (error) {
+        console.error(`Ошибка очистки строк: ${error}`);
+      }
+
+      scriptProperties.setProperty('Amo_get_Deals_next_part', Number(num_page_part_start) + 1);
+
+    }
+    else {
+      console.log('PAGE_NUMBER ' + PAGE_NUMBER + '\n' + (PAGE_NUMBER - 1))
+      scriptProperties.setProperty('Amo_get_Deals_next_part', 1)
+      scriptProperties.setProperty('Amo_Pages_' + name_function, 1)
+    }
+
+    SpreadsheetApp.flush();
+
+    if (PAGE_NUMBER == all_num_pages) {
+      //  spreadsheet.getSheetByName('DS по 1').getRange('C2').setValue(new Date())
+    }
+
+    var all_num_pages = Number(scriptProperties.getProperty('Amo_Pages_' + name_function)) || 0
+
+    //  sheet1.getRange('B1').setValue(new Date())
+    sheet_history.appendRow([name_function, new Date(), num_page_part_start + '/' + Math.ceil((all_num_pages / num_by_part))])
+
+    console.log('Удалить блокировку: ' + releaseLock_('lock_key_' + name_function))
+
+  }
+}
+
+
+
+/*
+function get_one_deal() {
+
+  var dealId = 28771469
+
+  var Access_token = scriptProperties.getProperty('Amo_Access_token')
+
+  const apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/leads/' + dealId + '?with=contacts,loss_reason,source_id'; // Замените SUBDOMAIN на ваш поддомен
+
+  var options = {
+    method: 'get',
+    headers: {
+      'Authorization': 'Bearer ' + Access_token
+    }
+  };
+
+  try {
+    var response = UrlFetchApp.fetch(apiUrl, options);
+  } catch (error) {
+    console.error('Ошибка: ' + error);
+
+    console.log('Пробуем обновить токен.')
+
+    var Access_token = refresh_AccessToken()
+
+    options.headers['Authorization'] = 'Bearer ' + Access_token;
+
+    var response = UrlFetchApp.fetch(apiUrl, options);
+  }
+
+  const ApiData = JSON.parse(response.getContentText());
+  console.log(JSON.stringify(ApiData, null, 2))
+  //  console.log(JSON.stringify(JSON.parse(response), null, 2))
+
+
+  var data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines'))
+  //  console.log(data_pipelines)
+
+  var data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users'))
+  //  console.log(data_users)
+
+  //var data_contacts = JSON.parse(scriptProperties.getProperty('Amo_Data_contacts'))
+  var data_contacts = get_Contacts(Access_token)
+
+  //  console.log(data_contacts)
+
+  //  var data_companies = JSON.parse(scriptProperties.getProperty('Amo_Data_Companies'))
+  var data_companies = get_Companies(Access_token)
+
+  //  console.log(data_companies)
+
+  var data_Deal_Custom_fields = JSON.parse(scriptProperties.getProperty('Amo_Data_Deal_Custom_fields'))
+  var data_Contact_Custom_fields = JSON.parse(scriptProperties.getProperty('Amo_Data_Contact_Custom_fields'))
+  var data_Company_Custom_fields = JSON.parse(scriptProperties.getProperty('Amo_Data_Company_Custom_fields'))
+
+  //  var data_history_deal = get_all_History_lead_(Access_token, data_Deal_Custom_fields, data_Contact_Custom_fields, data_Company_Custom_fields, data_pipelines, data_users, data_companies, data_contacts)
+  var data_history_deal = get_main_History_lead(Access_token, data_pipelines, data_users, data_companies, data_contacts)
+  //  console.log(data_history_deal)
+
+
+  var row_to_sheet = extract_row_field_id_(ApiData, data_pipelines, data_users, data_contacts, data_companies, data_history_deal)
+  console.log(row_to_sheet)
+
+  trigger_create_('get_Deals', 1)
+
+  return JSON.stringify(ApiData, null, 2) // Второй параметр - количество пробелов для форматирования
+
+}
+*/
+
+
+
+
+function extract_row_field_id_(ApiData, data_pipelines, map_users) {
+
+
+  //try {
+
+  var row_to_sheet = []
+
+  row_to_sheet.push(ApiData.id)
+  //  console.log('Сделка ' + ApiData.id)
+  row_to_sheet.push(ApiData.created_at)
+  row_to_sheet.push(ApiData.updated_at)
+  row_to_sheet.push(ApiData.name)
+
+  var name_pipiline = extract_pipiline_name_(data_pipelines, ApiData.pipeline_id)
+  var status_pipiline = extract_pipiline_status_(data_pipelines, ApiData.pipeline_id, ApiData.status_id)
+
+  //  console.log('Статус (этап воронки): ' + status_pipiline)
+  row_to_sheet.push(name_pipiline)
+  row_to_sheet.push(status_pipiline)
+
+  //  console.log(ApiData._embedded.loss_reason[0].name)
+  var prichina_otkaza = (ApiData._embedded.loss_reason.length) ? ApiData._embedded.loss_reason[0].name : ""
+  row_to_sheet.push(prichina_otkaza)
+
+
+  row_to_sheet.push(ApiData.price)
+
+  row_to_sheet.push(extract_Map_username_(map_users, ApiData.responsible_user_id))
+
+  row_to_sheet.push(extract_Map_username_(map_users, ApiData.created_by))
+
+  row_to_sheet.push(ApiData.is_deleted)
+
+
+  var deal_tags = (ApiData._embedded.tags.length) ? ApiData._embedded.tags.map(tag => tag.name).join(', ') : ""
+  row_to_sheet.push(deal_tags)
+
+
+  //  row_to_sheet.push(" - - - ")
+
+  // console.log(ApiData._embedded.contacts[0].id)
+
+  /*
+    for (var field of ApiData.custom_fields_values) {
+  
+      //  console.log('"' + field.field_name + '": ' +  JSON.stringify(field.values[0].value, null, 2) )
+  
+      if (field.field_id == 1390675) {
+        console.log('"' + field.field_name + '": ' + field.values[0].value)
+        //  row_to_sheet.push(field.values[0].value)
+        break
+      }
+  
+    }
+  */
+
+
+
+  // row_to_sheet.push(" - - - ")
+
+  //  console.log('Извлечение данных поля')
+
+
+  for (var id_field of Extract_field_id_deal) {
+    var valueFound = false; // флаг, показывающий, было ли найдено значение
+
+    if (Array.isArray(ApiData.custom_fields_values)) {
+      for (var field of ApiData.custom_fields_values) {
+        if (field.field_id == id_field) {
+          var values = field.values.map(value => value.value).join(', ');
+          row_to_sheet.push(values);
+          valueFound = true; // обновляем флаг, если значение найдено
+          break;
+        }
+      }
+    }
+
+
+    // Если значение не было найдено, добавляем пустую строку
+    if (!valueFound) {
+
+      /*
+            for (var one_Check_null_after_field_id_deal of Check_null_after_field_id_deal) {
+              if (id_field == one_Check_null_after_field_id_deal) {
+      
+                var type_filter = 'custom_field_' + id_field + '_value_changed'
+      
+                if (Array.isArray(data_history_deal)) {
+                  for (var one_history of data_history_deal) {
+      
+                    var check_hi_after = one_history[9]
+                    if (
+                      (one_history[1] == type_filter) &&
+                      (one_history[2] == ApiData.id) &&
+                      (check_hi_after != "")
+                    ) {
+                      row_to_sheet.push(check_hi_after)
+                      valueFound = true;
+                      break
+                    }
+                  }
+                }
+              }
+            }
+      */
+
+      if (!valueFound) {
+        row_to_sheet.push("")
+      }
+    }
+  }
+
+  //  row_to_sheet.push(" - - - ")
+
+
+
+  //  console.log('Проверка даты полей')
+
+  /*
+    for (var id_one_field of Date_fields) {
+      var valueFound = false; // флаг, показывающий, было ли найдено значение
+  
+      var type_filter = 'custom_field_' + id_one_field + '_value_changed'
+  
+      var dates_field = []
+  
+      if (Array.isArray(data_history_deal)) {
+        for (var one_history of data_history_deal) {
+  
+          var check_value_after = one_history[9]
+          var check_date_after = one_history[5]
+  
+          if (
+            (one_history[1] == type_filter) &&
+            (one_history[2] == ApiData.id) &&
+            (check_value_after != "") &&
+            (check_date_after != "")
+          ) {
+            dates_field.push(convertDateToUnixTime_(check_date_after))
+          }
+        }
+      }
+  
+      if (dates_field.length > 0) {
+        row_to_sheet.push(Math.max(...dates_field))
+        valueFound = true;
+      }
+  
+  
+      if (!valueFound) {
+        row_to_sheet.push("")
+      }
+  
+    }
+  
+  
+  
+    for (var id_one_field of Field_id_deal_First_value) {
+      var valueFound = false; // флаг, показывающий, было ли найдено значение
+  
+      var type_filter = 'custom_field_' + id_one_field + '_value_changed'
+  
+      var data_first_value = []
+  
+      if (Array.isArray(data_history_deal)) {
+        for (var one_history of data_history_deal) {
+  
+          var check_value_after = one_history[9]
+          var check_date_after = one_history[5]
+  
+          if (
+            (one_history[1] == type_filter) &&
+            (one_history[2] == ApiData.id) &&
+            (check_value_after != "") &&
+            (check_date_after != "")
+          ) {
+            data_first_value.push([convertDateToUnixTime_(check_date_after), check_value_after])
+          }
+        }
+      }
+  
+      if (data_first_value.length > 0) {
+        row_to_sheet.push(sort_By_Column_(data_first_value, 1, 1)[0][1])
+        valueFound = true;
+      }
+  
+  
+      if (!valueFound) {
+        row_to_sheet.push("")
+      }
+    }
+  
+  
+    for (var id_one_field of Field_id_deal_First_value) {
+      var valueFound = false; // флаг, показывающий, было ли найдено значение
+  
+      var type_filter = 'custom_field_' + id_one_field + '_value_changed'
+  
+      var data_first_date = []
+  
+      if (Array.isArray(data_history_deal)) {
+        for (var one_history of data_history_deal) {
+  
+          var check_value_after = one_history[9]
+          var check_date_after = one_history[5]
+  
+          if (
+            (one_history[1] == type_filter) &&
+            (one_history[2] == ApiData.id) &&
+            (check_value_after != "") &&
+            (check_date_after != "")
+          ) {
+            data_first_date.push([convertDateToUnixTime_(check_date_after), check_value_after])
+          }
+        }
+      }
+  
+      if (data_first_date.length > 0) {
+        row_to_sheet.push(sort_By_Column_(data_first_date, 1, 1)[0][0])
+        valueFound = true;
+      }
+  
+  
+      if (!valueFound) {
+        row_to_sheet.push("")
+      }
+    }
+  */
+  return row_to_sheet
+
+  /*
+    }
+    catch (error) {
+      console.error(`Ошибка: ${error}`);
+      console.log(ApiData)
+    }
+  */
+
+  //  console.log(row_to_sheet)
+
+
+}
+
+
+
+function get_one_contact() {
+
+  var contactId = 93881379
+
+  var Access_token = scriptProperties.getProperty('Amo_Access_token');
+
+  // Замените SUBDOMAIN на ваш домен в AMO CRM
+  var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/contacts/' + contactId + '?with=leads';
+
+  var options = {
+    method: 'get',
+    headers: {
+      'Authorization': 'Bearer ' + Access_token
+    }
+  };
+
+  try {
+    var response = UrlFetchApp.fetch(apiUrl, options);
+  } catch (error) {
+    console.error('Ошибка: ' + error);
+
+    console.log('Пробуем обновить токен.')
+
+    var Access_token = refresh_AccessToken()
+
+    options.headers['Authorization'] = 'Bearer ' + Access_token;
+
+    var response = UrlFetchApp.fetch(apiUrl, options);
+  }
+
+  const ApiData = JSON.parse(response.getContentText());
+  console.log(JSON.stringify(ApiData, null, 2))
+  //  console.log(JSON.stringify(JSON.parse(response), null, 2))
+
+}
+
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////
+
+
+function sort_By_Column_(data, columnIndex, direction = 1) { // Направление сортировки (1 для возрастания, 0 для убывания).
+  // Вычитаем 1, чтобы учесть, что входной индекс столбца начинается с 1
+  const index = columnIndex - 1;
+
+  return data.sort((a, b) => {
+    if (a[index] < b[index]) {
+      return direction === 1 ? -1 : 1;
+    }
+    if (a[index] > b[index]) {
+      return direction === 1 ? 1 : -1;
+    }
+    return 0; // равные значения
+  });
+}
+
+
+function getEndOfDayUnix_() {
+  var now = new Date(); // получаем текущую дату и время
+  now.setHours(23, 59, 59, 999); // устанавливаем время до конца дня
+
+  // Конвертируем дату в миллисекунды (время в формате Unix, но в миллисекундах)
+  var timeInMs = now.getTime();
+
+  // Конвертируем миллисекунды в секунды (стандартное время в формате Unix)
+  var unixTimestamp = timeInMs / 1000;
+
+  return unixTimestamp;
+}
+
+
+function extract_username_(data_users, user_id) {
+
+  for (var data of data_users) {
+
+    var check_user_id = data[0];
+    var check_username = data[1];
+
+    if (check_user_id == user_id) {
+      // console.log('Имя пользователя: ' + check_username);
+      return check_username;
+    }
+
+  }
+}
+
+function extract_Map_username_(usersMap, user_id) {
+  return usersMap[user_id] || '';
+}
+
+
+function extract_pipiline_status_(data_pipelines, pipeline_id, status_id) {
+
+  for (var status of data_pipelines) {
+
+    var check_id_pipiline = status[0]
+    var check_id_status = status[2]
+
+    if (
+      (check_id_pipiline == pipeline_id) &&
+      (check_id_status == status_id)
+    ) {
+      //  console.log('Название этапа воронки: ' + status[3])
+      return status[3]
+    }
+
+  }
+}
+
+
+function extract_pipiline_name_(data_pipelines, pipeline_id) {
+
+  for (var data of data_pipelines) {
+
+    var check_id_pipiline = data[0]
+    var check_name_pipiline = data[1]
+
+    if (
+      (check_id_pipiline == pipeline_id)
+    ) {
+      //  console.log('Название этапа воронки: ' + check_name_pipiline)
+      return check_name_pipiline
+    }
+
+  }
+}
+
+
+
+
+function extract_contacts_name_(data_contacts, contact_id) {
+  for (var data of data_contacts) {
+    var check_id = data[0]
+    if (check_id == contact_id) {
+      return data[1]
+    }
+  }
+}
+
+
+function extract_contacts_first_name_(data_contacts, contact_id) {
+  for (var data of data_contacts) {
+    var check_id = data[0]
+    if (check_id == contact_id) {
+      return data[2]
+    }
+  }
+}
+
+function extract_contacts_last_name_(data_contacts, contact_id) {
+  for (var data of data_contacts) {
+    var check_id = data[0]
+    if (check_id == contact_id) {
+      return data[3]
+    }
+  }
+}
+
+function extract_Map_contacts_(map_contacts, id) {
+  return map_contacts[id] || '';
+}
+
+
+function extract_companies_name_(data_companies, contact_id) {
+  for (var data of data_companies) {
+    var check_id = data[0]
+    if (check_id == contact_id) {
+      return data[1]
+    }
+  }
+}
+
+
+
+
+function extract_custom_field_value_name_(id_fields, type, data_Deal_Custom_fields, data_Contact_Custom_fields, data_Company_Custom_fields) {
+
+  if (type == 'lead') {
+    for (var data of data_Deal_Custom_fields) {
+      var check_id = data[2]
+      if (check_id == id_fields) {
+        return data[3]
+      }
+    }
+  }
+}
+
+
+///////////////////////////////////////////////////////////////////////
+
+
+function getTimestamp_(dayOffset) {
+
+  // var dayOffset = -1
+
+  var timeZoneOffset = 3; // Смещение часового пояса GMT+3 в минутах
+  var now = new Date();
+  now.setUTCHours(0, 0, 0, 0); // Устанавливаем время на начало дня по UTC
+  var timestamp = Math.floor(now.getTime() / 1000) - (timeZoneOffset * 60 * 60) + (dayOffset * 24 * 60 * 60);
+  //  console.log('timestamp: ' + timestamp + '\ndayOffset: ' + dayOffset)
+  return timestamp;
+}
+
+
+function get_size_data_(data) {
+
+  var blob = Utilities.newBlob(JSON.stringify(data)); // Создаем объект Blob из массива ячеек
+  var sizeInBytes = blob.getBytes().length; // Получаем размер объекта Blob в байтах
+  var sizeInKilobytes = (sizeInBytes / 1024).toFixed(2);
+  var kilobytesNumber = parseFloat(sizeInKilobytes);
+  console.log('Размер массива ячеек в Кб: ' + kilobytesNumber);
+
+  return kilobytesNumber
+}
+
+
+function convertUnixTimeToNormalDate_(unixTime, includeTime) {
+
+  if (unixTime != "") {
+    if (
+      (typeof unixTime === 'number') ||
+      (Number(unixTime) > 1)
+    ) {
+      var date = new Date(unixTime * 1000); // Умножаем на 1000, так как Unix время в секундах, а Date работает с миллисекундами
+
+      if (includeTime === 0) {
+        // Возвращаем только дату без времени
+        return date.toLocaleDateString('ru');
+      } else {
+        // Возвращаем дату и время
+        return date.toLocaleString('ru');
+      }
+    } else {
+      console.error('Это не число')
+      return unixTime;
+    }
+  }
+  else {
+    return unixTime;
+  }
+}
+
+
+
+function convertDateToUnixTime_(dateString) {
+  // Если строка содержит точки (например, "24.09.2023"), преобразовываем её в стандартный формат
+  if (dateString.includes('.')) {
+    var parts = dateString.split('.');
+    var day = parts[0];
+    var month = parts[1];
+    var otherParts = parts[2].split(',');  // Разделение года и времени
+    var year = otherParts[0].trim();
+    var time = otherParts[1].trim();
+    dateString = year + '-' + month + '-' + day + ' ' + time;
+  }
+
+  var date = new Date(dateString);
+  return Math.floor(date.getTime() / 1000);  // getTime возвращает миллисекунды, поэтому делим на 1000 для получения секунд
+}
+
+
+function findSmallestValueName_(dates_before_with_pipilines) {
+  return dates_before_with_pipilines.reduce((acc, curr) => {
+    if (acc[1] < curr[1]) {
+      return acc;
+    }
+    return curr;
+  })[0];
+}
+
+
+
+///////////////////////////////////////////////////////////////////////
+
+function get_Pipilines() {
+  var Access_token = scriptProperties.getProperty('Amo_Access_token');
+
+  var name_function = new Error().stack.match(/at\s+([^\s\(]+)/)[1]
+  //  console.log('name_function: ' + name_function)
+
+  console.log('🔸 ' + name_function)
+
+  var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/leads/pipelines'
+
+  var options = {
+    method: 'get',
+    headers: {
+      'Authorization': 'Bearer ' + Access_token
+    }
+  };
+
+  try {
+    var response = UrlFetchApp.fetch(apiUrl, options);
+
+  } catch (error) {
+    console.error('Ошибка: ' + error);
+
+    console.log('Пробуем обновить токен.');
+
+    var Access_token = refresh_AccessToken();
+
+    options.headers['Authorization'] = 'Bearer ' + Access_token;
+
+    var response = UrlFetchApp.fetch(apiUrl, options);
+
+  }
+
+
+  var ApiData = JSON.parse(response.getContentText());
+
+  //  console.log(JSON.stringify(ApiData, null, 2))
+  //  console.log(ApiData._embedded.pipelines)
+
+  var data_pipelines = []
+
+  for (var pipeline of ApiData._embedded.pipelines) {
+
+    for (var status of pipeline._embedded.statuses) {
+
+      data_pipelines.push([pipeline.id, pipeline.name, status.id, status.name])
+    }
+  }
+  console.log('Данные по воронкам: id воронки, название воронки, id этапа, название этапа')
+  //  console.log(data_pipelines)
+
+  scriptProperties.setProperty('Amo_Data_pipelines', JSON.stringify(data_pipelines));  // Поместить массив в свойство скрипта
+
+  var sheet1 = SpreadsheetApp.getActive().getSheetByName('Pipilines')
+  var dlina = data_pipelines.length
+  var shirina = data_pipelines[0].length
+
+  sheet1.getRange(2, 1, dlina, shirina).setValues(data_pipelines)
+
+  sheet1.getRange(dlina + 2, 1, sheet1.getMaxRows() - dlina + 2, sheet1.getMaxColumns()).clear({ contentsOnly: true, skipFilteredRows: true })
+
+
+}
+
+
+function get_Users(Access_token) {
+  // var Access_token = scriptProperties.getProperty('Amo_Access_token');
+
+  if (Access_token == undefined) {
+    //  console.log('Достаю токен')
+    var Access_token = scriptProperties.getProperty('Amo_Access_token')
+  }
+  else {
+    //  console.log('уже есть токен')
+  }
+
+  var name_function = new Error().stack.match(/at\s+([^\s\(]+)/)[1]
+  //  console.log('name_function: ' + name_function)
+
+  console.log('🔸 ' + name_function)
+
+  var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/users';
+
+  var options = {
+    method: 'get',
+    headers: {
+      'Authorization': 'Bearer ' + Access_token
+    }
+  };
+
+  try {
+    var response = UrlFetchApp.fetch(apiUrl, options);
+
+  } catch (error) {
+    console.error('Ошибка: ' + error);
+
+    console.log('Пробуем обновить токен.');
+
+    var Access_token = refresh_AccessToken();
+
+    options.headers['Authorization'] = 'Bearer ' + Access_token;
+
+    var response = UrlFetchApp.fetch(apiUrl, options);
+
+  }
+
+
+  var ApiData = JSON.parse(response.getContentText());
+  //  console.log(JSON.stringify(ApiData, null, 2))
+
+  var data_users = [];
+
+  for (var user of ApiData._embedded.users) {
+    //  console.log(JSON.stringify(user, null, 2))
+    data_users.push([user.id, user.name, user.email]);
+  }
+
+  console.log('Данные по пользователям: ID, имя, почта и роль');
+  console.log(data_users);
+
+  scriptProperties.setProperty('Amo_Data_users', JSON.stringify(data_users));  // Поместить массив в свойство скрипта
+
+  var sheet1 = SpreadsheetApp.getActive().getSheetByName('Users');
+  var dlina = data_users.length;
+  var shirina = data_users[0].length;
+
+  sheet1.getRange(2, 1, dlina, shirina).setValues(data_users);
+
+  sheet1.getRange(dlina + 2, 1, sheet1.getMaxRows() - dlina + 2, sheet1.getMaxColumns()).clear({ contentsOnly: true, skipFilteredRows: true });
+}
+
+
+
+
+
+
+function get_Contacts(Access_token) {
+
+  var name_function = new Error().stack.match(/at\s+([^\s\(]+)/)[1]
+  //  console.log('name_function: ' + name_function)
+
+  console.log('🔸 ' + name_function)
+
+  var all_num_pages = Number(scriptProperties.getProperty('Amo_Pages_' + name_function)) || 0
+
+
+  var PAGE_NUMBER = 1
+  var RESULTS_PER_PAGE = 250
+
+  //  var TIMESTAMP_FROM = getTimestamp_(-5) // с вчерашнего дня
+
+  if (Access_token == undefined) {
+    //  console.log('Достаю токен')
+    var Access_token = scriptProperties.getProperty('Amo_Access_token')
+  }
+  else {
+    //  console.log('уже есть токен')
+  }
+
+  var data_contacts = [];
+
+  do {
+
+
+    var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/contacts?' +
+      '&page=' + PAGE_NUMBER +
+      '&limit=' + RESULTS_PER_PAGE
+
+    var options = {
+      method: 'get',
+      headers: {
+        'Authorization': 'Bearer ' + Access_token
+      }
+    };
+
+    console.log('Страница: ' + PAGE_NUMBER + '/' + all_num_pages)
+
+
+    try {
+      var response = UrlFetchApp.fetch(apiUrl, options);
+    } catch (error) {
+      console.error('Ошибка: ' + error);
+
+      console.log('Пробуем обновить токен.');
+
+      var Access_token = refresh_AccessToken();
+      options.headers['Authorization'] = 'Bearer ' + Access_token;
+
+      var response = UrlFetchApp.fetch(apiUrl, options);
+    }
+
+    var content = response.getContentText();
+
+    if (!content) {
+      console.error("Ошибка: ответ от сервера пуст!");
+      // return;
+      break
+    }
+
+    var ApiData = JSON.parse(response.getContentText());
+    //  console.log(JSON.stringify(ApiData, null, 2))
+
+
+    for (var contact of ApiData._embedded.contacts) {
+
+      var new_row_data = [
+        contact.id,
+        contact.name,
+        contact.first_name,
+        contact.last_name,
+        contact.responsible_user_id,
+        contact.created_by,
+        contact.created_at,
+        contact.is_deleted,
+        (contact._embedded.tags.length) ? contact._embedded.tags.map(tag => tag.name).join(', ') : "",
+      ];
+
+      // Проходимся по каждому id из Extract_field_id_client и ищем соответствующее значение в custom_fields_values
+      for (var id_field of Extract_field_id_client) {
+        var valueFound = false; // флаг, показывающий, было ли найдено значение
+
+        if (Array.isArray(contact.custom_fields_values)) {
+          for (var custom_field of contact.custom_fields_values) {
+            if (custom_field.field_id == id_field) {
+              new_row_data.push(custom_field.values[0].value);
+              valueFound = true; // обновляем флаг, если значение найдено
+              break;
+            }
+          }
+        }
+
+        // Если значение не было найдено, добавляем пустую строку
+        if (!valueFound) {
+          new_row_data.push("");
+        }
+      }
+      //  console.log(new_row_data)
+      //  console.log('Длина ' + new_row_data.length)
+      data_contacts.push(new_row_data);
+    }
+
+
+
+    if (ApiData._links && ApiData._links.next) {
+      PAGE_NUMBER++;
+    } else {
+      scriptProperties.setProperty('Amo_Pages_' + name_function, PAGE_NUMBER);
+
+      break;
+    }
+
+  } while (true);
+
+
+
+
+  //  console.log('Данные по контактам:');
+  //  console.log(data_contacts);
+
+  //  scriptProperties.setProperty('Amo_Data_contacts', JSON.stringify(data_contacts));  // Поместить массив в свойство скрипта
+
+  // saveArrayToJson_(data_contacts, name_function, folderId)
+
+  var sheet1 = SpreadsheetApp.getActive().getSheetByName('Contacts');
+  var dlina = data_contacts.length;
+  var shirina = data_contacts[0].length;
+
+  sheet1.getRange(2, 1, dlina, shirina).setValues(data_contacts);
+
+  try {
+    sheet1.getRange(dlina + 2, 1, sheet1.getMaxRows() - dlina + 2, sheet1.getMaxColumns()).clear({ contentsOnly: true, skipFilteredRows: true });
+  }
+  catch (error) {
+    console.error(`Ошибка: ${error}`);
+  }
+
+  return data_contacts
+
+}
+
+
+
+function get_Companies(Access_token) {
+
+  var name_function = new Error().stack.match(/at\s+([^\s\(]+)/)[1]
+  //  console.log('name_function: ' + name_function)
+
+  console.log('🔸 ' + name_function)
+
+  var PAGE_NUMBER = 1
+  var RESULTS_PER_PAGE = 250
+
+  var all_num_pages = Number(scriptProperties.getProperty('Amo_Pages_' + name_function)) || 0
+
+
+  //  var TIMESTAMP_FROM = getTimestamp_(-5) // с вчерашнего дня
+
+  if (Access_token == undefined) {
+    //  console.log('Достаю токен')
+    var Access_token = scriptProperties.getProperty('Amo_Access_token')
+  }
+  else {
+    //  console.log('уже есть токен')
+  }
+  //  var Access_token = scriptProperties.getProperty('Amo_Access_token')
+
+  var data_companies = [];
+
+  do {
+
+    var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/companies?with=leads,customers' +
+      '&page=' + PAGE_NUMBER +
+      '&limit=' + RESULTS_PER_PAGE
+
+    var options = {
+      method: 'get',
+      headers: {
+        'Authorization': 'Bearer ' + Access_token
+      }
+    };
+
+    console.log('Страница: ' + PAGE_NUMBER + '/' + all_num_pages)
+
+
+    try {
+      var response = UrlFetchApp.fetch(apiUrl, options);
+    } catch (error) {
+      console.error('Ошибка: ' + error);
+
+      console.log('Пробуем обновить токен.');
+
+      var Access_token = refresh_AccessToken();
+      options.headers['Authorization'] = 'Bearer ' + Access_token;
+
+      var response = UrlFetchApp.fetch(apiUrl, options);
+    }
+
+    var content = response.getContentText();
+
+    if (!content) {
+      console.error("Ошибка: ответ от сервера пуст!");
+      // return;
+      break
+    }
+
+    var ApiData = JSON.parse(response.getContentText());
+    //  console.log(JSON.stringify(ApiData, null, 2))
+
+
+    for (var companies of ApiData._embedded.companies) {
+
+      //  console.log(JSON.stringify(companies, null, 2))
+      //  break
+
+      var new_row_data = [
+        companies.id,
+        companies.name,
+        companies.responsible_user_id,
+        companies.created_by,
+        companies.created_at,
+        companies.is_deleted,
+        (companies._embedded.tags.length) ? companies._embedded.tags.map(tag => tag.name).join(', ') : "",
+      ];
+
+      // Проходимся по каждому id из Extract_field_id_companies и ищем соответствующее значение в custom_fields_values
+      for (var id_field of Extract_field_id_companies) {
+        var valueFound = false; // флаг, показывающий, было ли найдено значение
+
+        if (Array.isArray(companies.custom_fields_values)) {
+          for (var custom_field of companies.custom_fields_values) {
+            if (custom_field.field_id == id_field) {
+              new_row_data.push(custom_field.values[0].value);
+              valueFound = true; // обновляем флаг, если значение найдено
+              break;
+            }
+          }
+        }
+
+        // Если значение не было найдено, добавляем пустую строку
+        if (!valueFound) {
+          new_row_data.push("");
+        }
+      }
+      //  console.log(new_row_data)
+      //  console.log('Длина ' + new_row_data.length)
+      data_companies.push(new_row_data);
+    }
+
+
+    if (ApiData._links && ApiData._links.next) {
+      PAGE_NUMBER++;
+    } else {
+      scriptProperties.setProperty('Amo_Pages_' + name_function, PAGE_NUMBER);
+
+      break;
+    }
+
+  } while (true);
+
+
+
+
+  //  console.log('Данные по компаниям:');
+  //  console.log(data_companies);
+
+  // scriptProperties.setProperty('Amo_Data_Companies', JSON.stringify(data_companies));  // Поместить массив в свойство скрипта
+
+  // saveArrayToJson_(data_companies, name_function, folderId)
+
+  var sheet1 = SpreadsheetApp.getActive().getSheetByName('Companies');
+  var dlina = data_companies.length;
+
+  if (dlina > 0) {
+    var shirina = data_companies[0].length;
+
+    sheet1.getRange(2, 1, dlina, shirina).setValues(data_companies);
+
+    try {
+      sheet1.getRange(dlina + 2, 1, sheet1.getMaxRows() - dlina + 2, sheet1.getMaxColumns()).clear({ contentsOnly: true, skipFilteredRows: true });
+    }
+    catch (error) {
+      console.error(`Ошибка: ${error}`);
+    }
+  }
+
+
+  /*
+    // Конвертируем данные в CSV формат
+    var csvData = data_companies.map(row => row.join(",")).join("\n")
+  
+    // Создаем файл в указанной папке
+    var folder = DriveApp.getFolderById('1tD0KUsxH49qY2IazTASF215wjq4Sq5gm');
+    folder.createFile('Data.csv', csvData);
+  */
+
+  // Конвертируем данные в JSON формат
+  //  var jsonData = JSON.stringify(data_companies);
+
+  // Создаем файл в указанной папке
+  //  var folder = DriveApp.getFolderById('1tD0KUsxH49qY2IazTASF215wjq4Sq5gm');
+  //  folder.createFile('Data.json', jsonData, MimeType.PLAIN_TEXT);
+
+
+  return data_companies
+
+}
+
+
+
+/*
+  function getUsers() {
+    var Access_token = scriptProperties.getProperty('Amo_Access_token');
+
+    var apiUrlUsers = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/users';
+    var apiUrlGroups = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/groups'; // Эндпоинт для групп
+
+    var options = {
+      method: 'get',
+      headers: {
+        'Authorization': 'Bearer ' + Access_token
+      }
+    };
+
+    // Получаем группы
+    var groupsResponse = UrlFetchApp.fetch(apiUrlGroups, options);
+    var groupsData = JSON.parse(groupsResponse.getContentText());
+    console.log(JSON.stringify(groupsData, null, 2))
+    var groupsMapping = {};  // Создаем объект для сопоставления ID группы с ее названием
+
+    for (var group of groupsData._embedded.groups) {
+      groupsMapping[group.id] = group.name;
+    }
+
+    console.log(groupsMapping)
+
+    // Теперь получаем пользователей
+    var usersResponse = UrlFetchApp.fetch(apiUrlUsers, options);
+    var ApiData = JSON.parse(usersResponse.getContentText());
+
+    var usersData = [];
+
+    for (var user of ApiData._embedded.users) {
+      var groupName = groupsMapping[user.group_id] || "Неизвестная группа";  // Получаем название группы или используем "Неизвестная группа" в случае отсутствия
+      usersData.push([user.id, user.name, user.email, groupName]);
+    }
+
+    console.log(usersData);
+
+
+    // Далее записываем данные в таблицу, как в вашем первоначальном коде
+    var sheet = SpreadsheetApp.getActive().getSheetByName('Users');
+    var length = usersData.length;
+    var width = usersData[0].length;
+
+    sheet.getRange(2, 1, length, width).setValues(usersData);
+    sheet.getRange(length + 2, 1, sheet.getMaxRows() - length + 2, sheet.getMaxColumns()).clear({ contentsOnly: true, skipFilteredRows: true });
+}
+*/
+
+
+///////////////////////////////////////////////////////////////////////
+
+function get_Group_Deal_Custom_fields_() {
+  var Access_token = scriptProperties.getProperty('Amo_Access_token');
+
+  var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/leads/custom_fields/groups';
+
+  var options = {
+    method: 'get',
+    headers: {
+      'Authorization': 'Bearer ' + Access_token
+    }
+  };
+
+  try {
+    var response = UrlFetchApp.fetch(apiUrl, options);
+  } catch (error) {
+    console.error('Ошибка: ' + error);
+    console.log('Пробуем обновить токен.');
+    var Access_token = refresh_AccessToken();
+    options.headers['Authorization'] = 'Bearer ' + Access_token;
+    var response = UrlFetchApp.fetch(apiUrl, options);
+  }
+
+  var ApiData = JSON.parse(response.getContentText());
+
+  var data_Group_Deal_Custom_fields = [];
+
+  for (var custom_field_group of ApiData._embedded.custom_field_groups) {
+    for (var field of custom_field_group.fields) {
+      data_Group_Deal_Custom_fields.push([custom_field_group.id, custom_field_group.name, field]);
+    }
+  }
+
+  console.log('Данные по группам пользовательских полей контактов: id группы, название группы, id поля');
+  //  console.log(data_Group_Deal_Custom_fields);
+
+  scriptProperties.setProperty('Amo_Data_Group_Deal_Custom_fields', JSON.stringify(data_Group_Deal_Custom_fields));
+
+  get_size_data_(data_Group_Deal_Custom_fields);
+
+  return data_Group_Deal_Custom_fields
+
+}
+
+
+function get_Deal_Custom_fields() {
+
+  var Access_token = scriptProperties.getProperty('Amo_Access_token');
+
+  var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/leads/custom_fields?limit=5000';
+
+  var options = {
+    method: 'get',
+    headers: {
+      'Authorization': 'Bearer ' + Access_token
+    }
+  };
+
+  try {
+    var response = UrlFetchApp.fetch(apiUrl, options);
+  } catch (error) {
+    console.error('Ошибка: ' + error);
+    console.log('Пробуем обновить токен.');
+    var Access_token = refresh_AccessToken();
+    options.headers['Authorization'] = 'Bearer ' + Access_token;
+    var response = UrlFetchApp.fetch(apiUrl, options);
+  }
+
+  var ApiData = JSON.parse(response.getContentText());
+
+  var data_Group_Deal_Custom_fields = get_Group_Deal_Custom_fields_()
+
+  var data_Deal_Custom_fields = [];
+
+  for (var field of ApiData._embedded.custom_fields) {
+    var id_group = "";
+    var name_group = "";
+    var id_field = field.id;
+    var name_field = field.name;
+    var type_field = field.type;
+
+    for (var group of data_Group_Deal_Custom_fields) {
+      if (group[2] == id_field) {
+        id_group = group[0];
+        name_group = group[1];
+        break;
+      }
+    }
+
+    data_Deal_Custom_fields.push([id_group, name_group, id_field, name_field, type_field]); // Добавлено: type_field
+  }
+
+  data_Deal_Custom_fields = sort_By_Column_(data_Deal_Custom_fields, 4, 1);
+  data_Deal_Custom_fields = sort_By_Column_(data_Deal_Custom_fields, 1, 0);
+
+  console.log('Данные по пользовательским полям контактов: id группы, название группы, id поля, название поля');
+  //  console.log(data_Deal_Custom_fields);
+
+  scriptProperties.setProperty('Amo_Data_Deal_Custom_fields', JSON.stringify(data_Deal_Custom_fields));
+
+  get_size_data_(data_Deal_Custom_fields);
+
+  var sheet1 = SpreadsheetApp.getActive().getSheetByName('Deal_Custom_fields');
+  var dlina = data_Deal_Custom_fields.length;
+  var shirina = data_Deal_Custom_fields[0].length;
+
+  sheet1.getRange(2, 1, dlina, shirina).setValues(data_Deal_Custom_fields);
+  sheet1.getRange(dlina + 2, 1, sheet1.getMaxRows() - dlina + 2, sheet1.getMaxColumns()).clear({ contentsOnly: true, skipFilteredRows: true });
+}
+
+
+///////////////////////////////////////////////////////////////////////
+
+function get_Group_Contact_Custom_fields_() {
+  var Access_token = scriptProperties.getProperty('Amo_Access_token');
+
+  var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/contacts/custom_fields/groups';
+
+  var options = {
+    method: 'get',
+    headers: {
+      'Authorization': 'Bearer ' + Access_token
+    }
+  };
+
+  try {
+    var response = UrlFetchApp.fetch(apiUrl, options);
+  } catch (error) {
+    console.error('Ошибка: ' + error);
+    console.log('Пробуем обновить токен.');
+    var Access_token = refresh_AccessToken();
+    options.headers['Authorization'] = 'Bearer ' + Access_token;
+    var response = UrlFetchApp.fetch(apiUrl, options);
+  }
+
+  var ApiData = JSON.parse(response.getContentText());
+
+  var data_Group_Contact_Custom_fields = [];
+
+  for (var custom_field_group of ApiData._embedded.custom_field_groups) {
+    for (var field of custom_field_group.fields) {
+      data_Group_Contact_Custom_fields.push([custom_field_group.id, custom_field_group.name, field]);
+    }
+  }
+
+  console.log('Данные по группам пользовательских полей контактов: id группы, название группы, id поля');
+  // console.log(data_Group_Contact_Custom_fields);
+
+  scriptProperties.setProperty('Amo_Data_Group_Contact_Custom_fields', JSON.stringify(data_Group_Contact_Custom_fields));
+
+  get_size_data_(data_Group_Contact_Custom_fields);
+
+  return data_Group_Contact_Custom_fields
+
+}
+
+
+function get_Contact_Custom_fields() {
+
+  var Access_token = scriptProperties.getProperty('Amo_Access_token');
+
+  var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/contacts/custom_fields?limit=5000';
+
+  var options = {
+    method: 'get',
+    headers: {
+      'Authorization': 'Bearer ' + Access_token
+    }
+  };
+
+  try {
+    var response = UrlFetchApp.fetch(apiUrl, options);
+  } catch (error) {
+    console.error('Ошибка: ' + error);
+    console.log('Пробуем обновить токен.');
+    var Access_token = refresh_AccessToken();
+    options.headers['Authorization'] = 'Bearer ' + Access_token;
+    var response = UrlFetchApp.fetch(apiUrl, options);
+  }
+
+  var ApiData = JSON.parse(response.getContentText());
+
+  var data_Group_Contact_Custom_fields = get_Group_Contact_Custom_fields_()
+
+  var data_Contact_Custom_fields = [];
+
+  for (var field of ApiData._embedded.custom_fields) {
+    var id_group = "";
+    var name_group = "";
+    var id_field = field.id;
+    var name_field = field.name;
+    var type_field = field.type;
+
+    for (var group of data_Group_Contact_Custom_fields) {
+      if (group[2] == id_field) {
+        id_group = group[0];
+        name_group = group[1];
+        break;
+      }
+    }
+
+    data_Contact_Custom_fields.push([id_group, name_group, id_field, name_field, type_field]);
+  }
+
+  data_Contact_Custom_fields = sort_By_Column_(data_Contact_Custom_fields, 4, 1);
+  data_Contact_Custom_fields = sort_By_Column_(data_Contact_Custom_fields, 1, 0);
+
+  console.log('Данные по пользовательским полям контактов: id группы, название группы, id поля, название поля');
+  // console.log(data_Contact_Custom_fields);
+
+  scriptProperties.setProperty('Amo_Data_Contact_Custom_fields', JSON.stringify(data_Contact_Custom_fields));
+
+  get_size_data_(data_Contact_Custom_fields);
+
+  var sheet1 = SpreadsheetApp.getActive().getSheetByName('Contact_Custom_fields');
+  var dlina = data_Contact_Custom_fields.length;
+  var shirina = data_Contact_Custom_fields[0].length;
+
+  sheet1.getRange(2, 1, dlina, shirina).setValues(data_Contact_Custom_fields);
+  sheet1.getRange(dlina + 2, 1, sheet1.getMaxRows() - dlina + 2, sheet1.getMaxColumns()).clear({ contentsOnly: true, skipFilteredRows: true });
+}
+
+
+///////////////////////////////////////////////////////////////////////
+
+function get_Group_Company_Custom_fields_() {
+  var Access_token = scriptProperties.getProperty('Amo_Access_token');
+
+  var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/companies/custom_fields/groups';
+
+  var options = {
+    method: 'get',
+    headers: {
+      'Authorization': 'Bearer ' + Access_token
+    }
+  };
+
+  try {
+    var response = UrlFetchApp.fetch(apiUrl, options);
+  } catch (error) {
+    console.error('Ошибка: ' + error);
+    console.log('Пробуем обновить токен.');
+    var Access_token = refresh_AccessToken();
+    options.headers['Authorization'] = 'Bearer ' + Access_token;
+    var response = UrlFetchApp.fetch(apiUrl, options);
+  }
+
+  var ApiData = JSON.parse(response.getContentText());
+
+  var data_Group_Company_Custom_fields = [];
+
+  for (var custom_field_group of ApiData._embedded.custom_field_groups) {
+    for (var field of custom_field_group.fields) {
+      data_Group_Company_Custom_fields.push([custom_field_group.id, custom_field_group.name, field]);
+    }
+  }
+
+  console.log('Данные по группам пользовательских полей контактов: id группы, название группы, id поля');
+  // console.log(data_Group_Company_Custom_fields);
+
+  scriptProperties.setProperty('Amo_Data_Group_Company_Custom_fields', JSON.stringify(data_Group_Company_Custom_fields));
+
+  get_size_data_(data_Group_Company_Custom_fields);
+
+  return data_Group_Company_Custom_fields
+
+}
+
+
+function get_Company_Custom_fields() {
+
+  var Access_token = scriptProperties.getProperty('Amo_Access_token');
+
+  var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/companies/custom_fields?limit=5000';
+
+  var options = {
+    method: 'get',
+    headers: {
+      'Authorization': 'Bearer ' + Access_token
+    }
+  };
+
+  try {
+    var response = UrlFetchApp.fetch(apiUrl, options);
+  } catch (error) {
+    console.error('Ошибка: ' + error);
+    console.log('Пробуем обновить токен.');
+    var Access_token = refresh_AccessToken();
+    options.headers['Authorization'] = 'Bearer ' + Access_token;
+    var response = UrlFetchApp.fetch(apiUrl, options);
+  }
+
+  var ApiData = JSON.parse(response.getContentText());
+
+  var data_Group_Company_Custom_fields = get_Group_Company_Custom_fields_()
+
+  var data_Company_Custom_fields = [];
+
+  for (var field of ApiData._embedded.custom_fields) {
+    var id_group = "";
+    var name_group = "";
+    var id_field = field.id;
+    var name_field = field.name;
+    var type_field = field.type;
+
+    for (var group of data_Group_Company_Custom_fields) {
+      if (group[2] == id_field) {
+        id_group = group[0];
+        name_group = group[1];
+        break;
+      }
+    }
+
+    data_Company_Custom_fields.push([id_group, name_group, id_field, name_field, type_field]);
+  }
+
+  data_Company_Custom_fields = sort_By_Column_(data_Company_Custom_fields, 4, 1);
+  data_Company_Custom_fields = sort_By_Column_(data_Company_Custom_fields, 1, 0);
+
+  console.log('Данные по пользовательским полям контактов: id группы, название группы, id поля, название поля');
+  // console.log(data_Company_Custom_fields);
+
+  scriptProperties.setProperty('Amo_Data_Company_Custom_fields', JSON.stringify(data_Company_Custom_fields));
+
+  get_size_data_(data_Company_Custom_fields);
+
+  var sheet1 = SpreadsheetApp.getActive().getSheetByName('Company_Custom_fields');
+  var dlina = data_Company_Custom_fields.length;
+  var shirina = data_Company_Custom_fields[0].length;
+
+  sheet1.getRange(2, 1, dlina, shirina).setValues(data_Company_Custom_fields);
+  sheet1.getRange(dlina + 2, 1, sheet1.getMaxRows() - dlina + 2, sheet1.getMaxColumns()).clear({ contentsOnly: true, skipFilteredRows: true });
+}
+
+
+///////////////////////////////////////////////////////////////////////
+
+function get_all_History() {
+
+  var Access_token = scriptProperties.getProperty('Amo_Access_token'); // Получаем сохраненный токен
+  var leadId = 27987405; // ID сделки, которую нужно проверить
+  // var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/events?filter[entity]=lead&filter[entity_id][]=' + leadId;
+
+  var name_function = new Error().stack.match(/at\s+([^\s\(]+)/)[1]
+  //  console.log('name_function: ' + name_function)
+
+  console.log('🔸 ' + name_function)
+
+
+  var all_num_pages = Number(scriptProperties.getProperty('Amo_Pages_' + name_function)) || 0
+
+
+  var data_Deal_Custom_fields = JSON.parse(scriptProperties.getProperty('Amo_Data_Deal_Custom_fields'))
+  var data_Contact_Custom_fields = JSON.parse(scriptProperties.getProperty('Amo_Data_Contact_Custom_fields'))
+  var data_Company_Custom_fields = JSON.parse(scriptProperties.getProperty('Amo_Data_Company_Custom_fields'))
+
+  var data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines'))
+  //  console.log(data_pipelines)
+
+  var data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users'))
+  //  console.log(data_users)
+
+  //  var data_companies = JSON.parse(scriptProperties.getProperty('Amo_Data_Companies'))
+  var data_companies = get_Companies(Access_token)
+  //  console.log(data_companies)
+
+  var data_contacts = JSON.parse(scriptProperties.getProperty('Amo_Data_contacts'))
+  // var data_contacts = get_Contacts(Access_token)
+  //  console.log(data_contacts)
+
+  var data_to_sheet = []
+
+
+  var PAGE_NUMBER = 1
+  do {
+
+    var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/events?filter[entity]=lead' + '&limit=250' + '&page=' + PAGE_NUMBER
+    //  var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/events?' + '&limit=250' + '&page=' + PAGE_NUMBER
+
+    var options = {
+      method: 'get',
+      headers: {
+        'Authorization': 'Bearer ' + Access_token
+      }
+    };
+
+    console.log('Страница: ' + PAGE_NUMBER + '/' + all_num_pages)
+
+
+    try {
+      var response = UrlFetchApp.fetch(apiUrl, options);
+    } catch (error) {
+      console.error('Ошибка: ' + error);
+      console.log('Пробуем обновить токен.');
+      var Access_token = refresh_AccessToken();
+      options.headers['Authorization'] = 'Bearer ' + Access_token;
+      var response = UrlFetchApp.fetch(apiUrl, options);
+    }
+
+    var ApiData = JSON.parse(response.getContentText());
+    //   console.log(JSON.stringify(ApiData, null, 2))
+
+
+    var events = ApiData._embedded.events;
+
+    for (var event of events) {
+
+      var row_to_sheet = []
+
+      //    console.log('🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 ')
+
+      //    console.log(JSON.stringify(event, null, 2))
+
+      //    console.log('Event ID:', event.id);
+      //    console.log('Event type:', event.type);
+      //    console.log('entity_id:', event.entity_id);
+      //    console.log('entity_type:', event.entity_type);
+      //    console.log('created_by:', extract_username_(data_users, event.created_by));
+      //    console.log('created_at:', event.created_at);
+      //    console.log('value_before:', JSON.stringify(event.value_before, null, 2));
+      //    console.log('value_after:', JSON.stringify(event.value_after, null, 2));
+      //  console.log('value_after:', JSON.stringify(event.value_after, null, 2));
+      //    console.log('account_id:', event.account_id);
+
+
+
+      //  var firstKey = Object.keys(event.value_after[0])[0];
+      //  console.log('firstKey ' + firstKey); // Выводит 'tag' если первый элемент содержит 'tag'
+
+      var firstKeyAfter = ""
+      var detali_key = ""
+      var znachen_do = ""
+      var znachen_posle = event.value_after
+
+      var firstElementAfter = event.value_after;
+      if (firstElementAfter && firstElementAfter.length > 0) {
+        var firstObjectAfter = firstElementAfter[0];  // берем первый объект в массиве
+        var firstKeyAfter = Object.keys(firstObjectAfter)[0];  // берем первый ключ в объекте
+        //  console.log('firstKeyAfter ' + firstKeyAfter);  // Выводит ключ, например 'tag' или 'link'
+
+
+        if (firstKeyAfter == 'custom_field_value') {
+          firstKeyAfter = 'Пользовательское поле'
+          var detali_key = event.value_after[0].custom_field_value.field_id
+          //   console.log('detali_key ' + detali_key)
+          var detali_key = extract_custom_field_value_name_(detali_key, event.entity_type, data_Deal_Custom_fields, data_Contact_Custom_fields, data_Company_Custom_fields) || "поле удалено"
+
+          var znachen_posle = event.value_after[0].custom_field_value.text
+        }
+
+        if (firstKeyAfter == 'lead_status') {
+          firstKeyAfter = 'Статус лида'
+          var detali_key = "Этап воронки"
+
+          var znachen_do = extract_pipiline_name_(data_pipelines, event.value_before[0].lead_status.pipeline_id) + '\n' +
+            extract_pipiline_status_(data_pipelines, event.value_before[0].lead_status.pipeline_id, event.value_before[0].lead_status.id)
+
+          var znachen_posle = extract_pipiline_name_(data_pipelines, event.value_after[0].lead_status.pipeline_id) + '\n' +
+            extract_pipiline_status_(data_pipelines, event.value_after[0].lead_status.pipeline_id, event.value_after[0].lead_status.id)
+        }
+
+        if (event.type == 'entity_linked') {
+          firstKeyAfter = 'Связан'
+
+          var detali_key = event.value_after[0].link.entity.type
+
+          if (detali_key == 'company') {
+            detali_key = 'Компания'
+            var znachen_posle = extract_companies_name_(data_companies, event.value_after[0].link.entity.id)
+          }
+
+          if (detali_key == 'contact') {
+            detali_key = 'Контакт'
+            var znachen_posle = extract_contacts_name_(data_contacts, event.value_after[0].link.entity.id)
+          }
+
+        }
+
+
+      } else {
+        //  console.log("Array is empty or undefined.");
+      }
+
+
+      if (event.type == 'lead_added') {
+        firstKeyAfter = 'Создана сделка'
+      }
+
+      if (event.type == 'entity_tag_added') {
+        firstKeyAfter = 'Добавлен тег'
+      }
+
+
+
+      row_to_sheet.push(event.id)
+      row_to_sheet.push(event.type)
+      row_to_sheet.push(event.entity_id)
+      row_to_sheet.push(event.entity_type)
+      row_to_sheet.push(extract_username_(data_users, event.created_by))
+      row_to_sheet.push(convertUnixTimeToNormalDate_(event.created_at, 1))
+      row_to_sheet.push(firstKeyAfter)
+      row_to_sheet.push(detali_key)
+      row_to_sheet.push(znachen_do)
+      row_to_sheet.push(znachen_posle)
+      row_to_sheet.push(event.account_id)
+      row_to_sheet.push(JSON.stringify(event.value_before, null, 2))
+      row_to_sheet.push(JSON.stringify(event.value_after, null, 2))
+
+
+      data_to_sheet.push(row_to_sheet)
+
+    }
+
+
+    if (ApiData._links && ApiData._links.next) {
+      PAGE_NUMBER++;
+    } else {
+      scriptProperties.setProperty('Amo_Pages_' + name_function, PAGE_NUMBER);
+      break;
+    }
+
+  } while (true);
+
+
+  //   console.log(data_to_sheet)
+
+  var data_to_sheet = sort_By_Column_(data_to_sheet, 3, 0)
+
+
+  var dlina = data_to_sheet.length
+  var shirina = getMaxWidth(data_to_sheet)
+
+  console.log('dlina ' + dlina)
+  console.log('shirina ' + shirina)
+
+  get_size_data_(data_to_sheet)
+
+  var sheet1 = SpreadsheetApp.getActive().getSheetByName('Events')
+  sheet1.getRange(2, 1, dlina, shirina).setValues(data_to_sheet)
+
+
+  try {
+    sheet1.getRange(dlina + 2, 1, sheet1.getMaxRows() - dlina + 2, sheet1.getMaxColumns()).clear({ contentsOnly: true, skipFilteredRows: true })
+  }
+  catch (error) {
+    console.error(`Ошибка очистки строк: ${error}`);
+  }
+
+  SpreadsheetApp.flush();
+
+}
+
+
+
+////////////////////////////////////////////
+
+
+
+function get_all_History_lead_(Access_token, data_Deal_Custom_fields, data_Contact_Custom_fields, data_Company_Custom_fields, data_pipelines, data_users, data_companies, data_contacts) {
+
+  var name_function = new Error().stack.match(/at\s+([^\s\(]+)/)[1]
+  // console.log('name_function: ' + name_function)
+
+  console.log('🔸 ' + name_function)
+
+
+  /*
+    var Access_token = scriptProperties.getProperty('Amo_Access_token'); // Получаем сохраненный токен
+    var leadId = 28273969; // ID сделки, которую нужно проверить
+    // var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/events?filter[entity]=lead&filter[entity_id][]=' + leadId;
+  
+  
+    var data_Deal_Custom_fields = JSON.parse(scriptProperties.getProperty('Amo_Data_Deal_Custom_fields'))
+    var data_Contact_Custom_fields = JSON.parse(scriptProperties.getProperty('Amo_Data_Contact_Custom_fields'))
+    var data_Company_Custom_fields = JSON.parse(scriptProperties.getProperty('Amo_Data_Company_Custom_fields'))
+  
+    var data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines'))
+    //  console.log(data_pipelines)
+  
+    var data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users'))
+    //  console.log(data_users)
+  
+    var data_companies = JSON.parse(scriptProperties.getProperty('Amo_Data_Companies'))
+    //  console.log(data_companies)
+  
+    var data_contacts = JSON.parse(scriptProperties.getProperty('Amo_Data_contacts'))
+    //  console.log(data_contacts)
+  */
+
+  var data_to_sheet = []
+
+  var PAGE_NUMBER = 1
+
+  var all_num_pages = Number(scriptProperties.getProperty('Amo_Pages_' + name_function)) || 0
+
+  do {
+
+    var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/events?filter[entity]=lead' + '&limit=250' + '&page=' + PAGE_NUMBER
+    //  var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/events?' + '&limit=250' + '&page=' + PAGE_NUMBER
+
+    //  console.log(apiUrl)
+
+    var options = {
+      method: 'get',
+      headers: {
+        'Authorization': 'Bearer ' + Access_token
+      }
+    };
+
+    console.log('Страница: ' + PAGE_NUMBER + '/' + all_num_pages)
+
+
+    try {
+      var response = UrlFetchApp.fetch(apiUrl, options);
+    } catch (error) {
+      console.error('Ошибка: ' + error);
+      console.log('Пробуем обновить токен.');
+      var Access_token = refresh_AccessToken();
+      options.headers['Authorization'] = 'Bearer ' + Access_token;
+      var response = UrlFetchApp.fetch(apiUrl, options);
+    }
+
+    var ApiData = JSON.parse(response.getContentText());
+    //   console.log(JSON.stringify(ApiData, null, 2))
+
+
+    var events = ApiData._embedded.events;
+
+    for (var event of events) {
+
+      console.log(event)
+
+      var row_to_sheet = []
+
+      //    console.log('🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 ')
+
+      //    console.log(JSON.stringify(event, null, 2))
+
+      //    console.log('Event ID:', event.id);
+      //    console.log('Event type:', event.type);
+      //    console.log('entity_id:', event.entity_id);
+      //    console.log('entity_type:', event.entity_type);
+      //    console.log('created_by:', extract_username_(data_users, event.created_by));
+      //    console.log('created_at:', event.created_at);
+      //    console.log('value_before:', JSON.stringify(event.value_before, null, 2));
+      //    console.log('value_after:', JSON.stringify(event.value_after, null, 2));
+      //  console.log('value_after:', JSON.stringify(event.value_after, null, 2));
+      //    console.log('account_id:', event.account_id);
+
+
+
+      //  var firstKey = Object.keys(event.value_after[0])[0];
+      //  console.log('firstKey ' + firstKey); // Выводит 'tag' если первый элемент содержит 'tag'
+
+      var firstKeyAfter = ""
+      var detali_key = ""
+      var znachen_do = ""
+      var znachen_posle = event.value_after
+
+      var firstElementAfter = event.value_after;
+      if (firstElementAfter && firstElementAfter.length > 0) {
+        var firstObjectAfter = firstElementAfter[0];  // берем первый объект в массиве
+        var firstKeyAfter = Object.keys(firstObjectAfter)[0];  // берем первый ключ в объекте
+        //  console.log('firstKeyAfter ' + firstKeyAfter);  // Выводит ключ, например 'tag' или 'link'
+
+
+        if (firstKeyAfter == 'custom_field_value') {
+          firstKeyAfter = 'Пользовательское поле'
+          var detali_key = event.value_after[0].custom_field_value.field_id
+          //   console.log('detali_key ' + detali_key)
+          var detali_key = extract_custom_field_value_name_(detali_key, event.entity_type, data_Deal_Custom_fields, data_Contact_Custom_fields, data_Company_Custom_fields) || "поле удалено"
+
+          var znachen_posle = event.value_after[0].custom_field_value.text
+        }
+
+        if (firstKeyAfter == 'lead_status') {
+          firstKeyAfter = 'Статус лида'
+          var detali_key = "Этап воронки"
+
+          var znachen_do = extract_pipiline_name_(data_pipelines, event.value_before[0].lead_status.pipeline_id) + '\n' +
+            extract_pipiline_status_(data_pipelines, event.value_before[0].lead_status.pipeline_id, event.value_before[0].lead_status.id)
+
+          var znachen_posle = extract_pipiline_name_(data_pipelines, event.value_after[0].lead_status.pipeline_id) + '\n' +
+            extract_pipiline_status_(data_pipelines, event.value_after[0].lead_status.pipeline_id, event.value_after[0].lead_status.id)
+        }
+
+        if (event.type == 'entity_linked') {
+          firstKeyAfter = 'Связан'
+
+          var detali_key = event.value_after[0].link.entity.type
+
+          if (detali_key == 'company') {
+            detali_key = 'Компания'
+            var znachen_posle = extract_companies_name_(data_companies, event.value_after[0].link.entity.id)
+          }
+
+          if (detali_key == 'contact') {
+            detali_key = 'Контакт'
+            var znachen_posle = extract_contacts_name_(data_contacts, event.value_after[0].link.entity.id)
+          }
+
+        }
+
+
+      } else {
+        //  console.log("Array is empty or undefined.");
+      }
+
+
+      if (event.type == 'lead_added') {
+        firstKeyAfter = 'Создана сделка'
+      }
+
+      if (event.type == 'entity_tag_added') {
+        firstKeyAfter = 'Добавлен тег'
+      }
+
+
+
+      row_to_sheet.push(event.id)
+      row_to_sheet.push(event.type)
+      row_to_sheet.push(event.entity_id)
+      row_to_sheet.push(event.entity_type)
+      row_to_sheet.push(extract_username_(data_users, event.created_by))
+      row_to_sheet.push(convertUnixTimeToNormalDate_(event.created_at, 1))
+      row_to_sheet.push(firstKeyAfter)
+      row_to_sheet.push(detali_key)
+      row_to_sheet.push(znachen_do)
+      row_to_sheet.push(znachen_posle)
+      row_to_sheet.push(event.account_id)
+      row_to_sheet.push(JSON.stringify(event.value_before, null, 2))
+      row_to_sheet.push(JSON.stringify(event.value_after, null, 2))
+
+      if (
+        (event.type).startsWith('custom_field_') ||
+        (event.type).startsWith('lead_status_')
+      ) {
+        data_to_sheet.push(row_to_sheet)
+      }
+
+    }
+
+
+    if (ApiData._links && ApiData._links.next) {
+      PAGE_NUMBER++;
+    } else {
+
+      scriptProperties.setProperty('Amo_Pages_' + name_function, PAGE_NUMBER);
+
+      break;
+    }
+
+  } while (true);
+
+
+  //   console.log(data_to_sheet)
+
+  var data_to_sheet = sort_By_Column_(data_to_sheet, 3, 0)
+
+  /*
+    var dlina = data_to_sheet.length
+    var shirina = getMaxWidth(data_to_sheet)
+  
+    console.log('dlina ' + dlina)
+    console.log('shirina ' + shirina)
+  
+    get_size_data_(data_to_sheet)
+  
+    var sheet1 = SpreadsheetApp.getActive().getSheetByName('Test')
+    sheet1.getRange(2, 1, dlina, shirina).setValues(data_to_sheet)
+  
+  
+    try {
+      sheet1.getRange(dlina + 2, 1, sheet1.getMaxRows() - dlina + 2, sheet1.getMaxColumns()).clear({ contentsOnly: true, skipFilteredRows: true })
+    }
+    catch (error) {
+      console.error(`Ошибка очистки строк: ${error}`);
+    }
+  
+    SpreadsheetApp.flush();
+  */
+
+  get_size_data_(data_to_sheet);
+
+  //  scriptProperties.setProperty('Amo_Data_all_History_lead', JSON.stringify(data_to_sheet));  // Поместить массив в свойство скрипта
+
+
+  return data_to_sheet
+
+}
+
+
+function get_main_History_lead_save_json() {
+
+  var Access_token = scriptProperties.getProperty('Amo_Access_token')
+
+  var data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines'))
+  //  console.log(data_pipelines)
+
+  var data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users'))
+
+  var data_contacts = readJsonFileToArray_(scriptProperties.getProperty('url_data_' + 'get_Contacts'))
+
+  var data_companies = readJsonFileToArray_(scriptProperties.getProperty('url_data_' + 'get_Companies'))
+
+  console.log('выгружаю')
+
+  get_main_History_lead(Access_token, data_pipelines, data_users, data_companies, data_contacts)
+}
+
+
+function get_main_History_lead(Access_token, data_pipelines, data_users, data_companies, data_contacts) {
+
+  var name_function = new Error().stack.match(/at\s+([^\s\(]+)/)[1]
+  // console.log('name_function: ' + name_function)
+
+  console.log('🔸 ' + name_function)
+
+
+  /*
+    var Access_token = scriptProperties.getProperty('Amo_Access_token'); // Получаем сохраненный токен
+    //  var leadId = 28273969; // ID сделки, которую нужно проверить
+    //  var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/events?filter[entity]=lead&filter[entity_id][]=' + leadId;
+  
+  
+    var data_Deal_Custom_fields = JSON.parse(scriptProperties.getProperty('Amo_Data_Deal_Custom_fields'))
+    var data_Contact_Custom_fields = JSON.parse(scriptProperties.getProperty('Amo_Data_Contact_Custom_fields'))
+    var data_Company_Custom_fields = JSON.parse(scriptProperties.getProperty('Amo_Data_Company_Custom_fields'))
+  
+    var data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines'))
+    //  console.log(data_pipelines)
+  
+    var data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users'))
+    //  console.log(data_users)
+  
+    var data_companies = JSON.parse(scriptProperties.getProperty('Amo_Data_Companies'))
+    //  console.log(data_companies)
+  
+    var data_contacts = JSON.parse(scriptProperties.getProperty('Amo_Data_contacts'))
+    //  console.log(data_contacts)
+  */
+
+  var data_to_sheet = []
+
+  var PAGE_NUMBER = 1
+
+  var all_num_pages = Number(scriptProperties.getProperty('Amo_Pages_' + name_function)) || 0
+
+  /*
+    // объединяем два массива
+    const allFieldIds = Check_null_after_field_id_deal.concat(Date_fields, Field_id_deal_First_value);
+    console.log(allFieldIds)
+  
+    // Преобразуем каждый ID в соответствующую строку запроса
+    const urlParts = allFieldIds.map(fieldId => `custom_field_${fieldId}_value_changed`);
+    console.log(urlParts)
+  
+    // Объединяем все части в одну строку, разделяя их запятой
+    const urlCustomFieldValueChanged = urlParts.join(',');
+    console.log(urlCustomFieldValueChanged);
+  */
+
+  var addons_urls = [
+    //  '&filter[type]=' + urlCustomFieldValueChanged,
+    '&filter[type]=' + 'lead_status_changed',
+    '&filter[type]=' + 'lead_added'
+  ]
+
+
+  for (var ad_url of addons_urls) {
+
+    console.log('🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹\n' +
+      'Проверка этапа/воронки')
+
+    var PAGE_NUMBER = 1
+
+    do {
+
+      var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/events?'
+        //  + 'filter[entity]=lead'
+        + ad_url
+        + '&limit=250'
+        + '&page='
+        + PAGE_NUMBER
+      //  var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/events?' + '&limit=250' + '&page=' + PAGE_NUMBER
+
+      //  console.log(apiUrl)
+
+      var options = {
+        method: 'get',
+        headers: {
+          'Authorization': 'Bearer ' + Access_token
+        }
+      };
+
+      console.log('Страница: ' + PAGE_NUMBER + '/' + all_num_pages)
+
+
+      try {
+        var response = UrlFetchApp.fetch(apiUrl, options);
+      } catch (error) {
+        console.error('Ошибка: ' + error);
+        console.log('Пробуем обновить токен.');
+        var Access_token = refresh_AccessToken();
+        options.headers['Authorization'] = 'Bearer ' + Access_token;
+        var response = UrlFetchApp.fetch(apiUrl, options);
+      }
+
+      var content = response.getContentText();
+
+      if (!content) {
+        console.error("Ошибка: ответ от сервера пуст!");
+        // return;
+        break
+      }
+
+      var ApiData = JSON.parse(response.getContentText());
+      //   console.log(JSON.stringify(ApiData, null, 2))
+
+
+      var events = ApiData._embedded.events;
+
+      for (var event of events) {
+
+        //  console.log(event)
+
+        var row_to_sheet = []
+
+        //    console.log('🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 🔹 ')
+
+        //    console.log(JSON.stringify(event, null, 2))
+
+        //    console.log('Event ID:', event.id);
+        //    console.log('Event type:', event.type);
+        //    console.log('entity_id:', event.entity_id);
+        //    console.log('entity_type:', event.entity_type);
+        //    console.log('created_by:', extract_username_(data_users, event.created_by));
+        //    console.log('created_at:', event.created_at);
+        //    console.log('value_before:', JSON.stringify(event.value_before, null, 2));
+        //    console.log('value_after:', JSON.stringify(event.value_after, null, 2));
+        //  console.log('value_after:', JSON.stringify(event.value_after, null, 2));
+        //    console.log('account_id:', event.account_id);
+
+
+
+        //  var firstKey = Object.keys(event.value_after[0])[0];
+        //  console.log('firstKey ' + firstKey); // Выводит 'tag' если первый элемент содержит 'tag'
+
+        var firstKeyAfter = ""
+        var detali_key = ""
+        var znachen_do = ""
+        var znachen_posle = event.value_after
+
+        var firstElementAfter = event.value_after;
+        if (firstElementAfter && firstElementAfter.length > 0) {
+          var firstObjectAfter = firstElementAfter[0];  // берем первый объект в массиве
+          var firstKeyAfter = Object.keys(firstObjectAfter)[0];  // берем первый ключ в объекте
+          //  console.log('firstKeyAfter ' + firstKeyAfter);  // Выводит ключ, например 'tag' или 'link'
+
+
+          if (firstKeyAfter == 'custom_field_value') {
+            firstKeyAfter = 'Пользовательское поле'
+            var detali_key = event.value_after[0].custom_field_value.field_id
+            //   console.log('detali_key ' + detali_key)
+            //  var detali_key = extract_custom_field_value_name_(detali_key, event.entity_type, data_Deal_Custom_fields, data_Contact_Custom_fields, data_Company_Custom_fields) || "поле удалено"
+
+            var znachen_posle = event.value_after[0].custom_field_value.text
+          }
+
+          if (firstKeyAfter == 'lead_status') {
+            firstKeyAfter = 'Статус лида'
+            var detali_key = "Этап воронки"
+
+            var znachen_do = extract_pipiline_name_(data_pipelines, event.value_before[0].lead_status.pipeline_id) + '\n' +
+              extract_pipiline_status_(data_pipelines, event.value_before[0].lead_status.pipeline_id, event.value_before[0].lead_status.id)
+
+            var znachen_posle = extract_pipiline_name_(data_pipelines, event.value_after[0].lead_status.pipeline_id) + '\n' +
+              extract_pipiline_status_(data_pipelines, event.value_after[0].lead_status.pipeline_id, event.value_after[0].lead_status.id)
+          }
+
+          if (event.type == 'entity_linked') {
+            firstKeyAfter = 'Связан'
+
+            var detali_key = event.value_after[0].link.entity.type
+
+            if (detali_key == 'company') {
+              detali_key = 'Компания'
+              var znachen_posle = extract_companies_name_(data_companies, event.value_after[0].link.entity.id)
+            }
+
+            if (detali_key == 'contact') {
+              detali_key = 'Контакт'
+              var znachen_posle = extract_contacts_name_(data_contacts, event.value_after[0].link.entity.id)
+            }
+
+          }
+
+
+        } else {
+          //  console.log("Array is empty or undefined.");
+        }
+
+
+        if (event.type == 'lead_added') {
+          firstKeyAfter = 'Создана сделка'
+          //  console.log('Есть создание сделки')
+        }
+
+        if (event.type == 'entity_tag_added') {
+          firstKeyAfter = 'Добавлен тег'
+        }
+
+
+
+        row_to_sheet.push(event.id)
+        row_to_sheet.push(event.type)
+        row_to_sheet.push(event.entity_id)
+        row_to_sheet.push(event.entity_type)
+        row_to_sheet.push(extract_username_(data_users, event.created_by))
+        row_to_sheet.push(convertUnixTimeToNormalDate_(event.created_at, 1))
+        row_to_sheet.push(firstKeyAfter)
+        row_to_sheet.push(detali_key)
+        row_to_sheet.push(znachen_do)
+        row_to_sheet.push(znachen_posle)
+        row_to_sheet.push(event.account_id)
+        row_to_sheet.push(JSON.stringify(event.value_before, null, 2))
+        row_to_sheet.push(JSON.stringify(event.value_after, null, 2))
+
+        if (
+          (event.type).startsWith('custom_field_') ||
+          (event.type).startsWith('lead_status_') ||
+          (event.type).startsWith('lead_added')
+        ) {
+          data_to_sheet.push(row_to_sheet)
+        }
+
+      }
+
+
+      if (ApiData._links && ApiData._links.next) {
+        PAGE_NUMBER++;
+      } else {
+
+        scriptProperties.setProperty('Amo_Pages_' + name_function, PAGE_NUMBER);
+
+        break;
+      }
+
+    } while (true);
+  }
+
+  //   console.log(data_to_sheet)
+
+  var data_to_sheet = sort_By_Column_(data_to_sheet, 6, 1)
+
+
+  var dlina = data_to_sheet.length
+  var shirina = getMaxWidth(data_to_sheet)
+
+  console.log('dlina ' + dlina)
+  console.log('shirina ' + shirina)
+
+  get_size_data_(data_to_sheet)
+
+  // saveArrayToJson_(data_to_sheet, name_function, folderId)
+
+  // trigger_create_('get_Deals', 1)
+
+
+  var sheet1 = SpreadsheetApp.getActive().getSheetByName('Test')
+  sheet1.getRange(2, 1, dlina, shirina).setValues(data_to_sheet)
+
+
+  try {
+    sheet1.getRange(dlina + 2, 1, sheet1.getMaxRows() - dlina + 2, sheet1.getMaxColumns()).clear({ contentsOnly: true, skipFilteredRows: true })
+  }
+  catch (error) {
+    console.error(`Ошибка очистки строк: ${error}`);
+  }
+
+  SpreadsheetApp.flush();
+
+
+
+  //  scriptProperties.setProperty('Amo_Data_all_History_lead', JSON.stringify(data_to_sheet));  // Поместить массив в свойство скрипта
+
+  /*
+    // Конвертируем данные в JSON формат
+    var jsonData = JSON.stringify(data_to_sheet);
+  
+    // Создаем файл в указанной папке
+    var folder = DriveApp.getFolderById('1tD0KUsxH49qY2IazTASF215wjq4Sq5gm');
+    folder.createFile('data_main_History_lead.json', jsonData, MimeType.PLAIN_TEXT);
+  
+    console.log(new Date().toLocaleString('ru'))
+  */
+
+  return data_to_sheet
+
+}
+
+
+function customSequence(s, k) {
+  return k * s - (k - 1);
+}
+
+/*
+ * This file contains the updated version of the original Apps Script used
+ * for integrating with amoCRM and Google Sheets. It introduces several
+ * improvements and safeguards to ensure that the authentication tokens
+ * are handled more robustly and that long‑running processes do not leave
+ * stale locks behind. The new helper functions make it possible to
+ * recover gracefully when tokens are missing or expired.
+ *
+ * IMPORTANT: Before running this script for the first time after the
+ * update, please add the following entries to the Script Properties via
+ * the Apps Script project settings. These values correspond to your
+ * amoCRM application credentials and the one‑time authorization code
+ * used to obtain your initial refresh token:
+ *
+ *   AMO_CLIENT_ID        – your amoCRM client ID
+ *   AMO_CLIENT_SECRET    – your amoCRM client secret
+ *   AMO_REDIRECT_URI     – redirect URI registered in amoCRM (e.g. https://script.google.com/)
+ *   AMO_AUTH_CODE        – the single‑use authorization code obtained during the OAuth flow
+ *
+ * The script will automatically exchange this code for a pair of
+ * access/refresh tokens on first use and subsequently refresh the
+ * access token using the stored refresh token.
+ */
+
+var scriptProperties = PropertiesService.getScriptProperties();
+
+const SUBDOMAIN = 'kitchencrm';
+
+// -----------------------------------------------------------------------------
+// Helper: Obtain a valid access token from properties or refresh it
+//
+// This function encapsulates the logic required to ensure that a valid
+// Amo_Access_token is available. It tries the following in order:
+//   1. If an access token exists, return it.
+//   2. If an access token does not exist but a refresh token exists,
+//      attempt to refresh the access token. If successful, return it.
+//   3. If neither token exists, use the one‑time AMO_AUTH_CODE stored in
+//      script properties to perform the initial OAuth exchange. The
+//      resulting access and refresh tokens are saved to the standard
+//      properties (Amo_Access_token and Amo_Refresh_token). The function
+//      then returns the new access token.
+//
+// If the authorization code is invalid or has expired, an error is thrown.
+function ensureAmoAccessToken_() {
+  var access = scriptProperties.getProperty('Amo_Access_token');
+  if (access) {
+    return access;
+  }
+
+  var refresh = scriptProperties.getProperty('Amo_Refresh_token');
+  if (refresh) {
+    try {
+      return refresh_AccessToken();
+    } catch (e) {
+      console.error('refresh_AccessToken() failed: ' + e);
+    }
+  }
+
+  // At this point there is no valid access token and either no refresh token
+  // exists or it failed to refresh. Fall back to using the stored
+  // authorization code.
+  var clientId = scriptProperties.getProperty('AMO_CLIENT_ID');
+  var clientSecret = scriptProperties.getProperty('AMO_CLIENT_SECRET');
+  var redirectUri = scriptProperties.getProperty('AMO_REDIRECT_URI');
+  var authCode = scriptProperties.getProperty('AMO_AUTH_CODE');
+
+  if (!(clientId && clientSecret && redirectUri && authCode)) {
+    throw new Error('Missing AMO_* configuration properties. Please set AMO_CLIENT_ID, AMO_CLIENT_SECRET, AMO_REDIRECT_URI, and AMO_AUTH_CODE in the project properties.');
+  }
+
+  return get_first_AccessToken_return_(clientId, clientSecret, redirectUri, authCode);
+}
+
+// -----------------------------------------------------------------------------
+// Helper: Exchange the authorization code for access and refresh tokens
+//
+// The original get_first_AccessToken() performs the OAuth exchange but
+// assumes that CLIENT_ID, CLIENT_SECRET, Code_authentication and
+// REDIRECT_URI are available as constants. This new version accepts the
+// parameters explicitly and returns the access token. It also writes both
+// tokens into the standard properties (Amo_Access_token and Amo_Refresh_token).
+function get_first_AccessToken_return_(clientId, clientSecret, redirectUri, authorizationCode) {
+  const tokenUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/oauth2/access_token';
+
+  const payload = {
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: 'authorization_code',
+    code: authorizationCode,
+    redirect_uri: redirectUri
+  };
+
+  const options = {
+    method: 'post',
+    contentType: 'application/x-www-form-urlencoded',
+    payload: Object.keys(payload).map(function(key) {
+      return encodeURIComponent(key) + '=' + encodeURIComponent(payload[key]);
+    }).join('&'),
+    muteHttpExceptions: true
+  };
+
+  var response = UrlFetchApp.fetch(tokenUrl, options);
+  var content = response.getContentText();
+  var tokenData;
+  try {
+    tokenData = JSON.parse(content);
+  } catch (e) {
+    throw new Error('Failed to parse OAuth token response: ' + content);
+  }
+
+  if (!(tokenData && tokenData.access_token && tokenData.refresh_token)) {
+    throw new Error('OAuth exchange failed: ' + content);
+  }
+
+  // Persist tokens to the standard properties
+  scriptProperties.setProperty('Amo_Access_token', tokenData.access_token);
+  scriptProperties.setProperty('Amo_Refresh_token', tokenData.refresh_token);
+
+  // Pre‑populate important caches on first run
+  try {
+    get_Pipilines(tokenData.access_token);
+    get_Deal_Custom_fields(tokenData.access_token);
+    get_Users(tokenData.access_token);
+  } catch (e) {
+    console.error('Cache warmup after OAuth exchange failed: ' + e);
+  }
+
+  return tokenData.access_token;
+}
+
+// -----------------------------------------------------------------------------
+// Safe refresh token logic
+//
+// The original refresh_AccessToken() always overwrote the stored
+// Amo_Refresh_token regardless of whether the new refresh token was present in
+// the response. This safer version only updates the refresh token when it
+// exists in the response. It also throws an error when the access token
+// cannot be refreshed so that callers can handle it appropriately.
+function refresh_AccessToken() {
+  var refreshToken = scriptProperties.getProperty('Amo_Refresh_token');
+  if (!refreshToken) {
+    throw new Error('No Amo_Refresh_token available to refresh access token.');
+  }
+
+  var clientId = scriptProperties.getProperty('AMO_CLIENT_ID') || CLIENT_ID;
+  var clientSecret = scriptProperties.getProperty('AMO_CLIENT_SECRET') || CLIENT_SECRET;
+
+  const tokenUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/oauth2/access_token';
+  const payload = {
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken
+  };
+  const options = {
+    method: 'post',
+    contentType: 'application/x-www-form-urlencoded',
+    payload: Object.keys(payload).map(function(key) {
+      return encodeURIComponent(key) + '=' + encodeURIComponent(payload[key]);
+    }).join('&'),
+    muteHttpExceptions: true
+  };
+
+  var response = UrlFetchApp.fetch(tokenUrl, options);
+  var content = response.getContentText();
+  var tokenData;
+  try {
+    tokenData = JSON.parse(content);
+  } catch (e) {
+    throw new Error('Failed to parse refresh token response: ' + content);
+  }
+
+  // If we do not receive an access token back, do not modify anything
+  if (!(tokenData && tokenData.access_token)) {
+    throw new Error('Failed to refresh access token: ' + content);
+  }
+
+  // Always update the access token
+  scriptProperties.setProperty('Amo_Access_token', tokenData.access_token);
+  // Only update the refresh token if present to avoid clobbering a valid one
+  if (tokenData.refresh_token) {
+    scriptProperties.setProperty('Amo_Refresh_token', tokenData.refresh_token);
+  }
+
+  // Optionally warm caches after refresh
+  try {
+    get_Pipilines(tokenData.access_token);
+    get_Deal_Custom_fields(tokenData.access_token);
+    get_Users(tokenData.access_token);
+  } catch (e) {
+    console.error('Cache warmup after token refresh failed: ' + e);
+  }
+
+  return tokenData.access_token;
+}
+
+// -----------------------------------------------------------------------------
+// Updated get_Deals with safe token retrieval, cache handling and lock cleanup
+//
+// This version of get_Deals uses ensureAmoAccessToken_() to obtain a valid
+// access token. It also checks that cached arrays exist before attempting
+// to iterate through them. Missing caches are populated on the fly via
+// get_Pipilines() and get_Users(). The entire body of the function is
+// wrapped in try/finally to guarantee that any acquired lock is released
+// even if an error occurs.
+function get_Deals(eventTrigger, num_page_part_start) {
+  if (num_page_part_start === undefined) {
+    num_page_part_start = Number(scriptProperties.getProperty('Amo_get_Deals_next_part')) || 1;
+  }
+
+  var name_function = new Error().stack.match(/at\s+([^\s\(]+)/)[1];
+  trigger_delete_by_name('get_Deals_triger');
+
+  // If a lock already exists, abort
+  if (isLocked_('lock_key_' + name_function)) {
+    console.error('Стоит блокировка запуска дубликата');
+    return;
+  }
+
+  // Acquire lock for 6 minutes
+  setLock_('lock_key_' + name_function, 6);
+
+  try {
+    var num_by_part = 2;
+    var first_PAGE_NUMBER = (num_page_part_start * num_by_part) - 1;
+    var PAGE_NUMBER = first_PAGE_NUMBER;
+    var RESULTS_PER_PAGE = 250;
+    var all_num_pages = Number(scriptProperties.getProperty('Amo_Pages_' + name_function)) || 0;
+
+    // Obtain a valid access token using the helper
+    var Access_token;
+    try {
+      Access_token = ensureAmoAccessToken_();
+    } catch (e) {
+      console.error('Ошибка получения токена: ' + e);
+      return;
+    }
+
+    // Load cached pipelines and users; fallback to empty arrays
+    var data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines') || '[]');
+    var data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users') || '[]');
+
+    // If caches are empty, populate them
+    if (data_pipelines.length === 0) {
+      get_Pipilines(Access_token);
+      data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines') || '[]');
+    }
+    if (data_users.length === 0) {
+      get_Users(Access_token);
+      data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users') || '[]');
+    }
+
+    var map_users = data_users.reduce(function(map, user) {
+      map[user[0]] = user[1];
+      return map;
+    }, {});
+
+    var num_page_part = 1;
+    var data_to_sheet = [];
+    do {
+      if (num_page_part > num_by_part) {
+        PAGE_NUMBER = PAGE_NUMBER - 1;
+        break;
+      }
+
+      var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/leads?' +
+        'filter[pipeline_id]=' + 6635110 +
+        '&filter[created_at][from]=1704060000' +
+        '&page=' + PAGE_NUMBER +
+        '&limit=' + RESULTS_PER_PAGE +
+        '&order[created_at]=asc' +
+        '&with=contacts,loss_reason,source_id';
+
+      var options = {
+        method: 'get',
+        headers: {
+          'Authorization': 'Bearer ' + Access_token
+        }
+      };
+      var response;
+      try {
+        response = UrlFetchApp.fetch(apiUrl, options);
+      } catch (error) {
+        console.error('Ошибка: ' + error + ' — пробуем обновить токен.');
+        Access_token = refresh_AccessToken();
+        options.headers['Authorization'] = 'Bearer ' + Access_token;
+        response = UrlFetchApp.fetch(apiUrl, options);
+      }
+
+      var content = response.getContentText();
+      if (!content) {
+        console.error('Ошибка: ответ от сервера пуст!');
+        scriptProperties.setProperty('Amo_get_Deals_next_part', 1);
+        scriptProperties.setProperty('Amo_Pages_' + name_function, 1);
+        break;
+      }
+
+      var ApiData = JSON.parse(content);
+      var leads = (ApiData._embedded && ApiData._embedded.leads) || [];
+      for (var i = 0; i < leads.length; i++) {
+        var row_to_sheet = extract_row_field_id_(leads[i], data_pipelines, map_users);
+        data_to_sheet.push(row_to_sheet);
+      }
+
+      num_page_part++;
+      if (ApiData._links && ApiData._links.next) {
+        PAGE_NUMBER++;
+      } else {
+        scriptProperties.setProperty('Amo_get_Deals_next_part', 1);
+        scriptProperties.setProperty('Amo_Pages_' + name_function, (Number(PAGE_NUMBER) - 1));
+        break;
+      }
+    } while (true);
+
+    // Sorting, formatting and writing to sheet as before
+    data_to_sheet = sort_By_Column_(data_to_sheet, 1, 1);
+    var column_convert_number = [7, 14];
+    for (var rowIndex = 0; rowIndex < data_to_sheet.length; rowIndex++) {
+      for (var idx = 0; idx < column_convert_number.length; idx++) {
+        var colIndex = column_convert_number[idx];
+        var cell = data_to_sheet[rowIndex][colIndex];
+        if (Number(cell) > 0) {
+          data_to_sheet[rowIndex][colIndex] = String(cell).replace('.', ',');
+        }
+      }
+    }
+    var column_convert_date = [[1, 1], [2, 1], [15, 0]];
+    for (var r = 0; r < data_to_sheet.length; r++) {
+      for (var j = 0; j < column_convert_date.length; j++) {
+        var col = column_convert_date[j][0];
+        var includeTime = column_convert_date[j][1];
+        data_to_sheet[r][col] = convertUnixTimeToNormalDate_(data_to_sheet[r][col], includeTime);
+      }
+    }
+    var dlina = data_to_sheet.length;
+    var shirina = getMaxWidth(data_to_sheet);
+    if (dlina > 0) {
+      var sheet1 = SpreadsheetApp.getActive().getSheetByName('Сделки');
+      var max_dlina = RESULTS_PER_PAGE * num_by_part;
+      var row_to_set = ((RESULTS_PER_PAGE * (first_PAGE_NUMBER - 1)) + 2);
+      sheet1.getRange(row_to_set, 1, dlina, shirina).setValues(data_to_sheet);
+      if (dlina < max_dlina) {
+        var startRowToClear = row_to_set + dlina;
+        var numRowsToClear = max_dlina - dlina;
+        sheet1.getRange(startRowToClear, 1, numRowsToClear, shirina).clearContent();
+      }
+      scriptProperties.setProperty('Amo_get_Deals_next_part', Number(num_page_part_start) + 1);
+    } else {
+      scriptProperties.setProperty('Amo_get_Deals_next_part', 1);
+      scriptProperties.setProperty('Amo_Pages_' + name_function, 1);
+    }
+    SpreadsheetApp.flush();
+    var updatedAllNumPages = Number(scriptProperties.getProperty('Amo_Pages_' + name_function)) || 0;
+    sheet_history.appendRow([name_function, new Date(), num_page_part_start + '/' + Math.ceil((updatedAllNumPages / num_by_part))]);
+  } finally {
+    // Always release the lock in a finally block
+    releaseLock_('lock_key_' + name_function);
+  }
+}
+
+
+
+/***************************************
+ * OVERRIDE BLOCK (Stable OAuth + Lock)
+ * Paste at the VERY END of file
+ ***************************************/
+
+var scriptProperties = PropertiesService.getScriptProperties();
+
+// --- Config getters (ONLY Script Properties are source of truth)
+function amoCfg_() {
+  var clientId = scriptProperties.getProperty('AMO_CLIENT_ID');
+  var clientSecret = scriptProperties.getProperty('AMO_CLIENT_SECRET');
+  var redirectUri = scriptProperties.getProperty('AMO_REDIRECT_URI') || 'https://script.google.com/';
+  var authCode = scriptProperties.getProperty('AMO_AUTH_CODE'); // one-time
+
+  if (!clientId || !clientSecret) {
+    throw new Error('AMO config missing: set AMO_CLIENT_ID and AMO_CLIENT_SECRET in Script Properties');
+  }
+  return { clientId: clientId, clientSecret: clientSecret, redirectUri: redirectUri, authCode: authCode };
+}
+
+function amoTokenUrl_() {
+  return 'https://' + SUBDOMAIN + '.amocrm.ru/oauth2/access_token';
+}
+
+// --- Unified lock with TTL marker (never "stuck forever")
+function withLock_(name, fn) {
+  var lock = LockService.getScriptLock();
+  var tsKey = 'LOCK_' + name + '_TS';
+  var ttlMs = 15 * 60 * 1000; // 15 minutes safety TTL
+
+  // TTL marker cleanup
+  var prev = Number(scriptProperties.getProperty(tsKey) || 0);
+  if (prev && (Date.now() - prev > ttlMs)) {
+    scriptProperties.deleteProperty(tsKey);
+  }
+
+  var acquired = false;
+  try {
+    acquired = lock.tryLock(30 * 1000); // 30s
+    if (!acquired) {
+      console.warn('[' + name + '] lock not acquired, skip run');
+      return;
+    }
+    scriptProperties.setProperty(tsKey, String(Date.now()));
+    return fn();
+  } finally {
+    // Always remove marker and release lock
+    scriptProperties.deleteProperty(tsKey);
+    if (acquired) {
+      try { lock.releaseLock(); } catch (e) { console.warn('[' + name + '] releaseLock failed: ' + e); }
+    }
+  }
+}
+
+// --- Token helpers
+function saveTokens_(tokenData) {
+  // expires_in is seconds
+  var expiresAt = Date.now() + (Number(tokenData.expires_in || 0) * 1000);
+
+  var props = {
+    Amo_Access_token: tokenData.access_token,
+    Amo_Access_token_expires_at: String(expiresAt)
+  };
+
+  // refresh_token may be absent in some responses; keep old if missing
+  if (tokenData.refresh_token) props.Amo_Refresh_token = tokenData.refresh_token;
+
+  scriptProperties.setProperties(props, true);
+}
+
+function ensureAmoAccessToken_() {
+  var access = scriptProperties.getProperty('Amo_Access_token');
+  var refresh = scriptProperties.getProperty('Amo_Refresh_token');
+  var expAt = Number(scriptProperties.getProperty('Amo_Access_token_expires_at') || 0);
+
+  // 60s buffer
+  if (access && expAt && Date.now() < (expAt - 60 * 1000)) {
+    return access;
+  }
+
+  if (refresh) {
+    return refresh_AccessToken(); // overridden below
+  }
+
+  // fallback to one-time auth code
+  var cfg = amoCfg_();
+  if (cfg.authCode) {
+    return get_first_AccessToken(); // overridden below
+  }
+
+  throw new Error('No valid amoCRM tokens. Set AMO_AUTH_CODE (one-time) to bootstrap.');
+}
+
+// --- Low-level HTTP (returns {code,text,json})
+function amoFetch_(method, url, options) {
+  options = options || {};
+  var params = {
+    method: method,
+    muteHttpExceptions: true,
+    headers: options.headers || {}
+  };
+  if (options.payload != null) {
+    params.contentType = options.contentType || 'application/json';
+    params.payload = (typeof options.payload === 'string') ? options.payload : JSON.stringify(options.payload);
+  }
+
+  var r = UrlFetchApp.fetch(url, params);
+  var code = r.getResponseCode();
+  var text = r.getContentText();
+
+  var json = null;
+  try { json = text ? JSON.parse(text) : null; } catch (e) {}
+
+  return { code: code, text: text, json: json };
+}
+
+// --- Unified amo request with retries for 401/429
+function amoRequestJson_(method, url, options) {
+  options = options || {};
+  var max429 = 3;
+
+  var token = ensureAmoAccessToken_();
+  options.headers = options.headers || {};
+  options.headers.Authorization = 'Bearer ' + token;
+
+  var resp = amoFetch_(method, url, options);
+
+  // If unauthorized, refresh and retry once
+  if (resp.code === 401) {
+    token = refresh_AccessToken();
+    options.headers.Authorization = 'Bearer ' + token;
+    resp = amoFetch_(method, url, options);
+  }
+
+  // Rate limit retries
+  var tries = 0;
+  while (resp.code === 429 && tries < max429) {
+    tries++;
+    Utilities.sleep(1000 * tries);
+    token = ensureAmoAccessToken_();
+    options.headers.Authorization = 'Bearer ' + token;
+    resp = amoFetch_(method, url, options);
+  }
+
+  if (resp.code < 200 || resp.code >= 300) {
+    throw new Error('amoRequest failed ' + resp.code + ': ' + resp.text);
+  }
+
+  return resp.json;
+}
+
+/**
+ * 1) Bootstrap tokens using one-time AMO_AUTH_CODE
+ * Run manually ONCE, then remove/clear AMO_AUTH_CODE (optional).
+ */
+function get_first_AccessToken() {
+  var cfg = amoCfg_();
+  if (!cfg.authCode) {
+    throw new Error('AMO_AUTH_CODE is missing in Script Properties');
+  }
+
+  var payload = {
+    client_id: cfg.clientId,
+    client_secret: cfg.clientSecret,
+    grant_type: 'authorization_code',
+    code: cfg.authCode,
+    redirect_uri: cfg.redirectUri
+  };
+
+  var resp = amoFetch_('post', amoTokenUrl_(), {
+    contentType: 'application/x-www-form-urlencoded',
+    payload: Object.keys(payload).map(function(k) {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(payload[k]);
+    }).join('&')
+  });
+
+  if (resp.code < 200 || resp.code >= 300 || !resp.json || !resp.json.access_token) {
+    throw new Error('get_first_AccessToken failed ' + resp.code + ': ' + resp.text);
+  }
+
+  saveTokens_(resp.json);
+
+  // optional warm caches (do not fail whole auth)
+  try { get_Pipilines(); } catch (e) { console.warn('pipelines warmup failed: ' + e); }
+  try { get_Deal_Custom_fields(); } catch (e) { console.warn('deal fields warmup failed: ' + e); }
+  try { get_Users(); } catch (e) { console.warn('users warmup failed: ' + e); }
+
+  return resp.json.access_token;
+}
+
+/**
+ * 2) Refresh access token using Amo_Refresh_token
+ */
+function refresh_AccessToken() {
+  var cfg = amoCfg_();
+  var refreshToken = scriptProperties.getProperty('Amo_Refresh_token');
+  if (!refreshToken) {
+    throw new Error('No Amo_Refresh_token to refresh access token');
+  }
+
+  var payload = {
+    client_id: cfg.clientId,
+    client_secret: cfg.clientSecret,
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+    redirect_uri: cfg.redirectUri
+  };
+
+  var resp = amoFetch_('post', amoTokenUrl_(), {
+    contentType: 'application/x-www-form-urlencoded',
+    payload: Object.keys(payload).map(function(k) {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(payload[k]);
+    }).join('&')
+  });
+
+  if (resp.code < 200 || resp.code >= 300 || !resp.json || !resp.json.access_token) {
+    // Don't brick script forever. If refresh fails, next ensure() can fall back to auth code (if you set it)
+    throw new Error('refresh_AccessToken failed ' + resp.code + ': ' + resp.text);
+  }
+
+  saveTokens_(resp.json);
+
+  // optional warm caches
+  try { get_Pipilines(); } catch (e) {}
+  try { get_Deal_Custom_fields(); } catch (e) {}
+  try { get_Users(); } catch (e) {}
+
+  return resp.json.access_token;
+}
+
+/**
+ * Compatibility: get_Deals_manual keeps working
+ */
+function get_Deals_manual() {
+  return get_Deals(null, 1);
+}
+
+/**
+ * Stable get_Deals: wraps your existing business logic,
+ * but replaces the fragile token/fetch parts.
+ *
+ * NOTE: this override assumes your original get_Deals body is still present ABOVE,
+ * but we are overriding it here completely.
+ */
+function get_Deals(eventTrigger, num_page_part_start) {
+  return withLock_('get_Deals', function () {
+    // --- BEGIN: keep your original logic mostly, but with safer token & fetch
+    if (num_page_part_start === undefined) {
+      num_page_part_start = Number(scriptProperties.getProperty('Amo_get_Deals_next_part')) || 1;
+    }
+    console.log('num_page_part_start ' + num_page_part_start);
+
+    var name_function = 'get_Deals';
+    try { trigger_delete_by_name('get_Deals_triger'); } catch (e) {}
+
+    var num_by_part = 2;
+    var first_PAGE_NUMBER = (num_page_part_start * num_by_part) - 1;
+    var PAGE_NUMBER = first_PAGE_NUMBER;
+    var RESULTS_PER_PAGE = 250;
+
+    var all_num_pages = Number(scriptProperties.getProperty('Amo_Pages_' + name_function)) || 0;
+    console.log('all_num_pages ' + all_num_pages);
+
+    // Always get valid token
+    var Access_token = ensureAmoAccessToken_();
+
+    // Load caches safely (and repopulate if missing)
+    var data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines') || '[]');
+    if (!data_pipelines.length) { get_Pipilines(); data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines') || '[]'); }
+
+    var data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users') || '[]');
+    if (!data_users.length) { get_Users(); data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users') || '[]'); }
+
+    var map_users = data_users.reduce(function (map, user) {
+      map[user[0]] = user[1];
+      return map;
+    }, {});
+
+    var num_page_part = 1;
+    var data_to_sheet = [];
+
+    do {
+      if (num_page_part > num_by_part) {
+        console.log('! Хватит))');
+        PAGE_NUMBER = PAGE_NUMBER - 1;
+        break;
+      }
+
+      var apiUrl = 'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/leads?' +
+        'filter[pipeline_id]=' + 6635110 +
+        '&filter[created_at][from]=1704060000' +
+        '&page=' + PAGE_NUMBER +
+        '&limit=' + RESULTS_PER_PAGE +
+        '&order[created_at]=asc' +
+        '&with=contacts,loss_reason,source_id';
+
+      console.log('apiUrl:\n' + apiUrl);
+      console.log('Страница: ' + PAGE_NUMBER + '/' + all_num_pages);
+
+      // ONE safe request point (handles 401/429)
+      var ApiData = amoRequestJson_('get', apiUrl, { headers: {} });
+
+      var leads = (ApiData && ApiData._embedded && ApiData._embedded.leads) ? ApiData._embedded.leads : [];
+      for (var i = 0; i < leads.length; i++) {
+        var row_to_sheet = extract_row_field_id_(leads[i], data_pipelines, map_users);
+        data_to_sheet.push(row_to_sheet);
+      }
+
+      num_page_part = num_page_part + 1;
+
+      if (ApiData._links && ApiData._links.next) {
+        PAGE_NUMBER++;
+      } else {
+        scriptProperties.setProperty('Amo_get_Deals_next_part', 1);
+        scriptProperties.setProperty('Amo_Pages_' + name_function, (Number(PAGE_NUMBER) - 1));
+        break;
+      }
+    } while (true);
+
+    // --- дальше оставляем твою механику форматирования/записи почти без изменений
+    console.log('Делаю небольшие правки массива');
+
+    data_to_sheet = sort_By_Column_(data_to_sheet, 1, 1);
+
+    var column_convert_number = [7, 14];
+    for (var r = 0; r < data_to_sheet.length; r++) {
+      for (var c = 0; c < column_convert_number.length; c++) {
+        var col = column_convert_number[c];
+        if (Number(data_to_sheet[r][col]) > 0) {
+          data_to_sheet[r][col] = String(data_to_sheet[r][col]).replace('.', ',');
+        }
+      }
+    }
+
+    var column_convert_date = [[1, 1], [2, 1], [15, 0]];
+    for (var rr = 0; rr < data_to_sheet.length; rr++) {
+      for (var j = 0; j < column_convert_date.length; j++) {
+        var cc = column_convert_date[j][0];
+        var includeTime = column_convert_date[j][1];
+        data_to_sheet[rr][cc] = convertUnixTimeToNormalDate_(data_to_sheet[rr][cc], includeTime);
+      }
+    }
+
+    var dlina = data_to_sheet.length;
+    var shirina = (dlina > 0) ? getMaxWidth(data_to_sheet) : 0;
+
+    if (dlina > 0) {
+      var sheet1 = SpreadsheetApp.getActive().getSheetByName('Сделки');
+
+      var max_dlina = RESULTS_PER_PAGE * num_by_part;
+      var row_to_set = ((RESULTS_PER_PAGE * (first_PAGE_NUMBER - 1)) + 2);
+
+      sheet1.getRange(row_to_set, 1, dlina, shirina).setValues(data_to_sheet);
+
+      if (dlina < max_dlina) {
+        try {
+          var startRowToClear = row_to_set + dlina;
+          var numRowsToClear = max_dlina - dlina;
+          sheet1.getRange(startRowToClear, 1, numRowsToClear, shirina).clearContent();
+        } catch (e) {
+          console.error('Ошибка очистки строк: ' + e);
+        }
+      }
+
+      scriptProperties.setProperty('Amo_get_Deals_next_part', Number(num_page_part_start) + 1);
+    } else {
+      scriptProperties.setProperty('Amo_get_Deals_next_part', 1);
+      scriptProperties.setProperty('Amo_Pages_' + name_function, 1);
+    }
+
+    SpreadsheetApp.flush();
+
+    // History — только если есть лист и переменная
+    try {
+      var sheet_history = SpreadsheetApp.getActive().getSheetByName('History');
+      var pages = Number(scriptProperties.getProperty('Amo_Pages_' + name_function)) || 0;
+      sheet_history.appendRow([name_function, new Date(), num_page_part_start + '/' + Math.ceil((pages / num_by_part))]);
+    } catch (e) {}
+
+    // --- END
+  });
+}
+
+/**
+ * Optional: a clean scheduled entrypoint
+ * set trigger every 30 min for this one
+ */
+function get_Deals_scheduled() {
+  return get_Deals(null, undefined);
+}
+
+const MULTI_PIPELINE_IDS = [
+  6640762, // Производство
+  6640758, // Отложенные
+  6640766, // Рекламации
+];
+
+/***************************************
+ * FINAL STABLE BLOCK (OAuth + Fetch + Lock)
+ * Paste at the VERY END of file.
+ * Remove older "updated OAuth"/"override" blocks to avoid duplicates.
+ ***************************************/
+
+(function () {
+  // Use the top-level scriptProperties if it exists; otherwise create it.
+  var SP = (typeof scriptProperties !== 'undefined' && scriptProperties)
+    ? scriptProperties
+    : PropertiesService.getScriptProperties();
+
+  // ---------- Config ----------
+  function amoCfg_() {
+    // Prefer Script Properties as source of truth
+    var subdomain = (SP.getProperty('AMO_SUBDOMAIN') || '').trim();
+    var clientId = (SP.getProperty('AMO_CLIENT_ID') || '').trim();
+    var clientSecret = (SP.getProperty('AMO_CLIENT_SECRET') || '').trim();
+    var redirectUri = (SP.getProperty('AMO_REDIRECT_URI') || 'https://script.google.com/').trim();
+    var authCode = (SP.getProperty('AMO_AUTH_CODE') || '').trim(); // one-time bootstrap
+
+    // Backward compatibility with legacy constants (if you still keep them)
+    try { if (!subdomain && typeof SUBDOMAIN !== 'undefined') subdomain = String(SUBDOMAIN).trim(); } catch (e) {}
+    try { if (!clientId && typeof CLIENT_ID !== 'undefined') clientId = String(CLIENT_ID).trim(); } catch (e) {}
+    try { if (!clientSecret && typeof CLIENT_SECRET !== 'undefined') clientSecret = String(CLIENT_SECRET).trim(); } catch (e) {}
+    try { if (!redirectUri && typeof REDIRECT_URI !== 'undefined') redirectUri = String(REDIRECT_URI).trim(); } catch (e) {}
+    try { if (!authCode && typeof Code_authentication !== 'undefined') authCode = String(Code_authentication).trim(); } catch (e) {}
+
+    if (!subdomain) throw new Error('AMO_SUBDOMAIN (или SUBDOMAIN) не задан');
+    if (!clientId) throw new Error('AMO_CLIENT_ID (или CLIENT_ID) не задан');
+    if (!clientSecret) throw new Error('AMO_CLIENT_SECRET (или CLIENT_SECRET) не задан');
+
+    return { subdomain: subdomain, clientId: clientId, clientSecret: clientSecret, redirectUri: redirectUri, authCode: authCode };
+  }
+
+  function amoTokenUrl_(cfg) {
+    return 'https://' + cfg.subdomain + '.amocrm.ru/oauth2/access_token';
+  }
+
+  // ---------- Lock wrapper (uses your existing lock helpers if they exist) ----------
+  function withSafeLock_(lockName, minutes, fn) {
+    // If your project already has setLock_/releaseLock_/isLocked_, use them
+    var key = 'lock_key_' + lockName;
+
+    if (typeof isLocked_ === 'function' && isLocked_(key)) {
+      console.warn('[' + lockName + '] already locked, skip run');
+      return;
+    }
+
+    if (typeof setLock_ === 'function') setLock_(key, minutes || 6);
+
+    try {
+      return fn();
+    } finally {
+      if (typeof releaseLock_ === 'function') releaseLock_(key);
+    }
+  }
+
+  // ---------- Token storage ----------
+  // Store expires_at in UNIX seconds (consistent everywhere)
+  function saveTokens_(tokenData) {
+    if (!tokenData || !tokenData.access_token) throw new Error('saveTokens_: missing access_token');
+
+    SP.setProperty('Amo_Access_token', tokenData.access_token);
+
+    if (tokenData.refresh_token) {
+      SP.setProperty('Amo_Refresh_token', tokenData.refresh_token);
+    }
+
+    if (tokenData.expires_in) {
+      var expiresAtSec = Math.floor(Date.now() / 1000) + Number(tokenData.expires_in);
+      SP.setProperty('Amo_Access_token_expires_at', String(expiresAtSec));
+    }
+  }
+
+  function ensureAmoAccessToken_() {
+    var access = SP.getProperty('Amo_Access_token');
+    var expiresAt = Number(SP.getProperty('Amo_Access_token_expires_at') || 0);
+    var now = Math.floor(Date.now() / 1000);
+    var SKEW = 60;
+
+    // If token exists and not expiring soon -> OK
+    if (access && (!expiresAt || (now + SKEW) < expiresAt)) return access;
+
+    var refresh = SP.getProperty('Amo_Refresh_token');
+    if (refresh) return refresh_AccessToken();
+
+    // Bootstrap by auth code (one-time)
+    var cfg = amoCfg_();
+    if (!cfg.authCode) {
+      throw new Error('Нет refresh токена и нет AMO_AUTH_CODE для первичной авторизации');
+    }
+    return get_first_AccessToken(); // bootstrap
+  }
+
+  // ---------- HTTP helpers ----------
+  function formUrlEncoded_(obj) {
+    return Object.keys(obj).map(function (k) {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(obj[k]);
+    }).join('&');
+  }
+
+  function amoFetchRaw_(method, url, opts) {
+    opts = opts || {};
+    var params = {
+      method: method,
+      muteHttpExceptions: true,
+      headers: opts.headers || {}
+    };
+    if (opts.payload != null) {
+      params.contentType = opts.contentType || 'application/x-www-form-urlencoded';
+      params.payload = opts.payload;
+    }
+    var r = UrlFetchApp.fetch(url, params);
+    return { code: r.getResponseCode(), text: r.getContentText() };
+  }
+
+  // Handles 401 (refresh+retry once) and 429 (retry with backoff)
+  function amoRequestJson_(method, url, opts) {
+    opts = opts || {};
+    opts.headers = opts.headers || {};
+
+    var token = ensureAmoAccessToken_();
+    opts.headers.Authorization = 'Bearer ' + token;
+
+    var resp = amoFetchRaw_(method, url, opts);
+
+    if (resp.code === 401) {
+      token = refresh_AccessToken();
+      opts.headers.Authorization = 'Bearer ' + token;
+      resp = amoFetchRaw_(method, url, opts);
+    }
+
+    var tries = 0;
+    while (resp.code === 429 && tries < 3) {
+      tries++;
+      Utilities.sleep(1000 * tries);
+      token = ensureAmoAccessToken_();
+      opts.headers.Authorization = 'Bearer ' + token;
+      resp = amoFetchRaw_(method, url, opts);
+    }
+
+    if (resp.code < 200 || resp.code >= 300) {
+      throw new Error('amoRequest failed HTTP ' + resp.code + ': ' + resp.text);
+    }
+
+    return resp.text ? JSON.parse(resp.text) : null;
+  }
+
+  // ---------- OAuth bootstrap ----------
+  // Run once (or automatically when no refresh token exists)
+  function get_first_AccessToken() {
+    var cfg = amoCfg_();
+    if (!cfg.authCode) throw new Error('AMO_AUTH_CODE отсутствует (нужен для первого получения refresh_token)');
+
+    var payload = {
+      client_id: cfg.clientId,
+      client_secret: cfg.clientSecret,
+      grant_type: 'authorization_code',
+      code: cfg.authCode,
+      redirect_uri: cfg.redirectUri
+    };
+
+    var resp = amoFetchRaw_('post', amoTokenUrl_(cfg), {
+      contentType: 'application/x-www-form-urlencoded',
+      payload: formUrlEncoded_(payload)
+    });
+
+    if (resp.code < 200 || resp.code >= 300) {
+      throw new Error('OAuth exchange failed HTTP ' + resp.code + ': ' + resp.text);
+    }
+
+    var tokenData = JSON.parse(resp.text);
+    if (!tokenData.access_token || !tokenData.refresh_token) {
+      throw new Error('OAuth exchange: нет access_token/refresh_token: ' + resp.text);
+    }
+
+    saveTokens_(tokenData);
+
+    // Warm caches but never fail auth
+    try { if (typeof get_Pipilines === 'function') get_Pipilines(); } catch (e) { console.warn('get_Pipilines warmup failed: ' + e); }
+    try { if (typeof get_Deal_Custom_fields === 'function') get_Deal_Custom_fields(); } catch (e) { console.warn('get_Deal_Custom_fields warmup failed: ' + e); }
+    try { if (typeof get_Users === 'function') get_Users(); } catch (e) { console.warn('get_Users warmup failed: ' + e); }
+
+    return tokenData.access_token;
+  }
+
+  // ---------- Refresh ----------
+  function refresh_AccessToken() {
+    var cfg = amoCfg_();
+    var refreshToken = SP.getProperty('Amo_Refresh_token');
+    if (!refreshToken) throw new Error('Amo_Refresh_token пуст');
+
+    var payload = {
+      client_id: cfg.clientId,
+      client_secret: cfg.clientSecret,
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      redirect_uri: cfg.redirectUri
+    };
+
+    var resp = amoFetchRaw_('post', amoTokenUrl_(cfg), {
+      contentType: 'application/x-www-form-urlencoded',
+      payload: formUrlEncoded_(payload)
+    });
+
+    if (resp.code < 200 || resp.code >= 300) {
+      throw new Error('refresh_AccessToken failed HTTP ' + resp.code + ': ' + resp.text);
+    }
+
+    var tokenData = JSON.parse(resp.text);
+    if (!tokenData.access_token) {
+      throw new Error('refresh_AccessToken: нет access_token: ' + resp.text);
+    }
+
+    saveTokens_(tokenData);
+
+    // Warm caches (optional)
+    try { if (typeof get_Pipilines === 'function') get_Pipilines(); } catch (e) {}
+    try { if (typeof get_Deal_Custom_fields === 'function') get_Deal_Custom_fields(); } catch (e) {}
+    try { if (typeof get_Users === 'function') get_Users(); } catch (e) {}
+
+    return tokenData.access_token;
+  }
+
+  // Expose the stable functions globally (override duplicates above)
+  this.ensureAmoAccessToken_ = ensureAmoAccessToken_;
+  this.refresh_AccessToken = refresh_AccessToken;
+  this.get_first_AccessToken = get_first_AccessToken;
+  this.amoRequestJson_ = amoRequestJson_;
+
+  // ---------- Stable get_Deals override ----------
+  this.get_Deals = function (eventTrigger, num_page_part_start) {
+    return withSafeLock_('get_Deals', 6, function () {
+      if (num_page_part_start === undefined) {
+        num_page_part_start = Number(SP.getProperty('Amo_get_Deals_next_part')) || 1;
+      }
+
+      var name_function = 'get_Deals';
+      try { if (typeof trigger_delete_by_name === 'function') trigger_delete_by_name('get_Deals_triger'); } catch (e) {}
+
+      var num_by_part = 2;
+      var first_PAGE_NUMBER = (num_page_part_start * num_by_part) - 1;
+      var PAGE_NUMBER = first_PAGE_NUMBER;
+      var RESULTS_PER_PAGE = 250;
+
+      // Ensure token
+      ensureAmoAccessToken_();
+
+      // Safe caches
+      var data_pipelines = JSON.parse(SP.getProperty('Amo_Data_pipelines') || '[]');
+      if (!data_pipelines.length && typeof get_Pipilines === 'function') {
+        get_Pipilines();
+        data_pipelines = JSON.parse(SP.getProperty('Amo_Data_pipelines') || '[]');
+      }
+
+      var data_users = JSON.parse(SP.getProperty('Amo_Data_users') || '[]');
+      if (!data_users.length && typeof get_Users === 'function') {
+        get_Users();
+        data_users = JSON.parse(SP.getProperty('Amo_Data_users') || '[]');
+      }
+
+      var map_users = data_users.reduce(function (map, user) {
+        map[user[0]] = user[1];
+        return map;
+      }, {});
+
+      var num_page_part = 1;
+      var data_to_sheet = [];
+
+      var cfg = amoCfg_();
+
+      do {
+        if (num_page_part > num_by_part) {
+          PAGE_NUMBER = PAGE_NUMBER - 1;
+          break;
+        }
+
+        var apiUrl = 'https://' + cfg.subdomain + '.amocrm.ru/api/v4/leads?' +
+          'filter[pipeline_id]=' + 6635110 +
+          '&filter[created_at][from]=1704060000' +
+          '&page=' + PAGE_NUMBER +
+          '&limit=' + RESULTS_PER_PAGE +
+          '&order[created_at]=asc' +
+          '&with=contacts,loss_reason,source_id';
+
+        var ApiData = amoRequestJson_('get', apiUrl, { headers: {} });
+        var leads = (ApiData && ApiData._embedded && ApiData._embedded.leads) ? ApiData._embedded.leads : [];
+
+        for (var i = 0; i < leads.length; i++) {
+          // uses your existing extractor
+          var row = extract_row_field_id_(leads[i], data_pipelines, map_users);
+          data_to_sheet.push(row);
+        }
+
+        num_page_part++;
+
+        if (ApiData && ApiData._links && ApiData._links.next) {
+          PAGE_NUMBER++;
+        } else {
+          SP.setProperty('Amo_get_Deals_next_part', 1);
+          SP.setProperty('Amo_Pages_' + name_function, String(Number(PAGE_NUMBER) - 1));
+          break;
+        }
+      } while (true);
+
+      // Your formatting logic (kept)
+      data_to_sheet = sort_By_Column_(data_to_sheet, 1, 1);
+
+      var column_convert_number = [7, 14];
+      for (var r = 0; r < data_to_sheet.length; r++) {
+        for (var c = 0; c < column_convert_number.length; c++) {
+          var col = column_convert_number[c];
+          if (Number(data_to_sheet[r][col]) > 0) {
+            data_to_sheet[r][col] = String(data_to_sheet[r][col]).replace('.', ',');
+          }
+        }
+      }
+
+      var column_convert_date = [[1, 1], [2, 1], [15, 0]];
+      for (var rr = 0; rr < data_to_sheet.length; rr++) {
+        for (var j = 0; j < column_convert_date.length; j++) {
+          var cc = column_convert_date[j][0];
+          var includeTime = column_convert_date[j][1];
+          data_to_sheet[rr][cc] = convertUnixTimeToNormalDate_(data_to_sheet[rr][cc], includeTime);
+        }
+      }
+
+      var dlina = data_to_sheet.length;
+      var shirina = dlina ? getMaxWidth(data_to_sheet) : 0;
+
+      if (dlina > 0) {
+        var sheet1 = SpreadsheetApp.getActive().getSheetByName('Сделки');
+        var max_dlina = RESULTS_PER_PAGE * num_by_part;
+        var row_to_set = ((RESULTS_PER_PAGE * (first_PAGE_NUMBER - 1)) + 2);
+
+        sheet1.getRange(row_to_set, 1, dlina, shirina).setValues(data_to_sheet);
+
+        if (dlina < max_dlina) {
+          var startRowToClear = row_to_set + dlina;
+          var numRowsToClear = max_dlina - dlina;
+          sheet1.getRange(startRowToClear, 1, numRowsToClear, shirina).clearContent();
+        }
+
+        SP.setProperty('Amo_get_Deals_next_part', String(Number(num_page_part_start) + 1));
+      } else {
+        SP.setProperty('Amo_get_Deals_next_part', '1');
+        SP.setProperty('Amo_Pages_' + name_function, '1');
+      }
+
+      SpreadsheetApp.flush();
+
+      // History write (safe)
+      try {
+        var sh = SpreadsheetApp.getActive().getSheetByName('History');
+        var pages = Number(SP.getProperty('Amo_Pages_' + name_function)) || 0;
+        sh.appendRow([name_function, new Date(), num_page_part_start + '/' + Math.ceil((pages / num_by_part))]);
+      } catch (e) {}
+
+      return true;
+    });
+  };
+
+  // Keep manual entrypoint compatible
+  this.get_Deals_manual = function () {
+    return this.get_Deals(null, 1);
+  };
+
+}).call(this);
+
+
+
+
+// NEXT FILE GS
+
+
+/*
+ * This file contains the updated version of the original Apps Script used
+ * for integrating with amoCRM and Google Sheets. It introduces several
+ * improvements and safeguards to ensure that the authentication tokens
+ * are handled more robustly and that long‑running processes do not leave
+ * stale locks behind. The new helper functions make it possible to
+ * recover gracefully when tokens are missing or expired.
+ *
+ * IMPORTANT: Before running this script for the first time after the
+ * update, please add the following entries to the Script Properties via
+ * the Apps Script project settings. These values correspond to your
+ * amoCRM application credentials and the one‑time authorization code
+ * used to obtain your initial refresh token:
+ *
+ *   AMO_CLIENT_ID        – your amoCRM client ID
+ *   AMO_CLIENT_SECRET    – your amoCRM client secret
+ *   AMO_REDIRECT_URI     – redirect URI registered in amoCRM (e.g. https://script.google.com/)
+ *   AMO_AUTH_CODE        – the single‑use authorization code obtained during the OAuth flow
+ *
+ * The script will automatically exchange this code for a pair of
+ * access/refresh tokens on first use and subsequently refresh the
+ * access token using the stored refresh token.
+ */
+
+var scriptProperties = PropertiesService.getScriptProperties();
+
+function getAmoCfg_() {
+  function pickConst_(name) {
+    try {
+      if (name === 'SUBDOMAIN' && typeof SUBDOMAIN !== 'undefined') return SUBDOMAIN;
+      if (name === 'CLIENT_ID' && typeof CLIENT_ID !== 'undefined') return CLIENT_ID;
+      if (name === 'CLIENT_SECRET' && typeof CLIENT_SECRET !== 'undefined') return CLIENT_SECRET;
+      if (name === 'REDIRECT_URI' && typeof REDIRECT_URI !== 'undefined') return REDIRECT_URI;
+      if (name === 'AUTH_CODE' && typeof Code_authentication !== 'undefined') return Code_authentication;
+    } catch (e) {}
+    return null;
+  }
+
+  function pickProp_(keys) {
+    for (var i = 0; i < keys.length; i++) {
+      var v = scriptProperties.getProperty(keys[i]);
+      if (v !== null && v !== undefined && String(v).trim() !== '') return String(v).trim();
+    }
+    return null;
+  }
+
+  return {
+    subdomain: pickConst_('SUBDOMAIN') || pickProp_(['AMO_SUBDOMAIN', 'SUBDOMAIN']),
+    clientId: pickConst_('CLIENT_ID') || pickProp_(['AMO_CLIENT_ID', 'CLIENT_ID']),
+    clientSecret: pickConst_('CLIENT_SECRET') || pickProp_(['AMO_CLIENT_SECRET', 'CLIENT_SECRET']),
+    redirectUri: pickConst_('REDIRECT_URI') || pickProp_(['AMO_REDIRECT_URI', 'REDIRECT_URI']),
+    authCode: pickConst_('AUTH_CODE') || pickProp_(['AMO_AUTH_CODE', 'Code_authentication'])
+  };
+}
+
+
+// const SUBDOMAIN = 'kitchencrm';
+
+// -----------------------------------------------------------------------------
+// Helper: Obtain a valid access token from properties or refresh it
+//
+// This function encapsulates the logic required to ensure that a valid
+// Amo_Access_token is available. It tries the following in order:
+//   1. If an access token exists, return it.
+//   2. If an access token does not exist but a refresh token exists,
+//      attempt to refresh the access token. If successful, return it.
+//   3. If neither token exists, use the one‑time AMO_AUTH_CODE stored in
+//      script properties to perform the initial OAuth exchange. The
+//      resulting access and refresh tokens are saved to the standard
+//      properties (Amo_Access_token and Amo_Refresh_token). The function
+//      then returns the new access token.
+//
+// If the authorization code is invalid or has expired, an error is thrown.
+function ensureAmoAccessToken_() {
+  var access = scriptProperties.getProperty('Amo_Access_token');
+  var expiresAt = Number(scriptProperties.getProperty('Amo_Access_token_expires_at') || 0);
+
+  var now = Math.floor(Date.now() / 1000);
+  var SKEW = 60;
+
+  if (access && (!expiresAt || (now + SKEW) < expiresAt)) {
+    return access;
+  }
+
+  var refresh = scriptProperties.getProperty('Amo_Refresh_token');
+  if (refresh) {
+    return refresh_AccessToken();
+  }
+
+  var cfg = getAmoCfg_();
+
+  if (!(cfg.subdomain && cfg.clientId && cfg.clientSecret && cfg.redirectUri && cfg.authCode)) {
+    throw new Error(
+      'Missing amoCRM config. Нужно задать AMO_SUBDOMAIN, AMO_CLIENT_ID, AMO_CLIENT_SECRET, AMO_REDIRECT_URI, AMO_AUTH_CODE ' +
+      '(или объявить константы SUBDOMAIN/CLIENT_ID/CLIENT_SECRET/REDIRECT_URI/Code_authentication).'
+    );
+  }
+
+  return get_first_AccessToken_return_(cfg.clientId, cfg.clientSecret, cfg.redirectUri, cfg.authCode, cfg.subdomain);
+}
+
+// -----------------------------------------------------------------------------
+// Helper: Exchange the authorization code for access and refresh tokens
+//
+// The original get_first_AccessToken() performs the OAuth exchange but
+// assumes that CLIENT_ID, CLIENT_SECRET, Code_authentication and
+// REDIRECT_URI are available as constants. This new version accepts the
+// parameters explicitly and returns the access token. It also writes both
+// tokens into the standard properties (Amo_Access_token and Amo_Refresh_token).
+function get_first_AccessToken_return_(clientId, clientSecret, redirectUri, authorizationCode, subdomain) {
+  if (!subdomain) {
+    subdomain = getAmoCfg_().subdomain;
+  }
+  if (!subdomain) throw new Error('SUBDOMAIN/AMO_SUBDOMAIN не задан');
+
+  var tokenUrl = 'https://' + subdomain + '.amocrm.ru/oauth2/access_token';
+
+  var payloadObj = {
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: 'authorization_code',
+    code: authorizationCode,
+    redirect_uri: redirectUri
+  };
+
+  var options = {
+    method: 'post',
+    muteHttpExceptions: true,
+    contentType: 'application/json',
+    payload: JSON.stringify(payloadObj)
+  };
+
+  var response = UrlFetchApp.fetch(tokenUrl, options);
+  var code = response.getResponseCode();
+  var body = response.getContentText();
+
+  if (code < 200 || code >= 300) {
+    throw new Error('OAuth exchange failed. HTTP ' + code + ' body=' + body);
+  }
+
+  var tokenData = JSON.parse(body);
+  if (!tokenData.access_token || !tokenData.refresh_token) {
+    throw new Error('OAuth exchange: нет access_token/refresh_token. body=' + body);
+  }
+
+  scriptProperties.setProperty('Amo_Access_token', tokenData.access_token);
+  scriptProperties.setProperty('Amo_Refresh_token', tokenData.refresh_token);
+
+  if (tokenData.expires_in) {
+    var expiresAt = Math.floor(Date.now() / 1000) + Number(tokenData.expires_in);
+    scriptProperties.setProperty('Amo_Access_token_expires_at', String(expiresAt));
+  }
+
+  try { get_Pipilines(tokenData.access_token); } catch (e) { console.warn('get_Pipilines failed: ' + e); }
+  try { get_Deal_Custom_fields(tokenData.access_token); } catch (e) { console.warn('get_Deal_Custom_fields failed: ' + e); }
+  try { get_Users(tokenData.access_token); } catch (e) { console.warn('get_Users failed: ' + e); }
+
+  return tokenData.access_token;
+}
+
+
+// -----------------------------------------------------------------------------
+// Safe refresh token logic
+//
+// The original refresh_AccessToken() always overwrote the stored
+// Amo_Refresh_token regardless of whether the new refresh token was present in
+// the response. This safer version only updates the refresh token when it
+// exists in the response. It also throws an error when the access token
+// cannot be refreshed so that callers can handle it appropriately.
+function refresh_AccessToken() {
+  var cfg = getAmoCfg_();
+
+  if (!cfg.subdomain) throw new Error('SUBDOMAIN не задан. Задай const SUBDOMAIN или Script Property AMO_SUBDOMAIN');
+  if (!cfg.clientId) throw new Error('CLIENT_ID не задан. Задай const CLIENT_ID или Script Property AMO_CLIENT_ID');
+  if (!cfg.clientSecret) throw new Error('CLIENT_SECRET не задан. Задай const CLIENT_SECRET или Script Property AMO_CLIENT_SECRET');
+
+  var refreshToken = scriptProperties.getProperty('Amo_Refresh_token');
+  if (!refreshToken) throw new Error('Amo_Refresh_token пуст в Script Properties');
+
+  var tokenUrl = 'https://' + cfg.subdomain + '.amocrm.ru/oauth2/access_token';
+
+  var payloadObj = {
+    client_id: cfg.clientId,
+    client_secret: cfg.clientSecret,
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken
+  };
+
+  var options = {
+    method: 'post',
+    muteHttpExceptions: true,
+    contentType: 'application/json',
+    payload: JSON.stringify(payloadObj)
+  };
+
+  var response = UrlFetchApp.fetch(tokenUrl, options);
+  var code = response.getResponseCode();
+  var body = response.getContentText();
+
+  if (code < 200 || code >= 300) {
+    throw new Error('refresh_AccessToken failed. HTTP ' + code + ' body=' + body);
+  }
+
+  var tokenData = JSON.parse(body);
+  if (!tokenData.access_token) {
+    throw new Error('refresh_AccessToken: в ответе нет access_token. body=' + body);
+  }
+
+  scriptProperties.setProperty('Amo_Access_token', tokenData.access_token);
+
+  if (tokenData.refresh_token) {
+    scriptProperties.setProperty('Amo_Refresh_token', tokenData.refresh_token);
+  }
+
+  if (tokenData.expires_in) {
+    var expiresAt = Math.floor(Date.now() / 1000) + Number(tokenData.expires_in);
+    scriptProperties.setProperty('Amo_Access_token_expires_at', String(expiresAt));
+  }
+
+  try { get_Pipilines(tokenData.access_token); } catch (e) { console.warn('get_Pipilines failed: ' + e); }
+  try { get_Deal_Custom_fields(tokenData.access_token); } catch (e) { console.warn('get_Deal_Custom_fields failed: ' + e); }
+  try { get_Users(tokenData.access_token); } catch (e) { console.warn('get_Users failed: ' + e); }
+
+  return tokenData.access_token;
+}
+
+
+
+// -----------------------------------------------------------------------------
+// Updated get_Deals with safe token retrieval, cache handling and lock cleanup
+//
+// This version of get_Deals uses ensureAmoAccessToken_() to obtain a valid
+// access token. It also checks that cached arrays exist before attempting
+// to iterate through them. Missing caches are populated on the fly via
+// get_Pipilines() and get_Users(). The entire body of the function is
+// wrapped in try/finally to guarantee that any acquired lock is released
+// even if an error occurs.
+function get_Deals(eventTrigger, num_page_part_start) {
+  if (num_page_part_start === undefined) {
+    num_page_part_start = Number(scriptProperties.getProperty('Amo_get_Deals_next_part')) || 1;
+  }
+
+  var name_function = new Error().stack.match(/at\s+([^\s\(]+)/)[1];
+  trigger_delete_by_name('get_Deals_triger');
+
+  // If a lock already exists, abort
+  if (isLocked_('lock_key_' + name_function)) {
+    console.error('Стоит блокировка запуска дубликата');
+    return;
+  }
+
+  // Acquire lock for 6 minutes
+  setLock_('lock_key_' + name_function, 6);
+
+  try {
+    var num_by_part = 2;
+    var first_PAGE_NUMBER = (num_page_part_start * num_by_part) - 1;
+    var PAGE_NUMBER = first_PAGE_NUMBER;
+    var RESULTS_PER_PAGE = 250;
+    var all_num_pages = Number(scriptProperties.getProperty('Amo_Pages_' + name_function)) || 0;
+
+    // Obtain a valid access token using the helper
+    var Access_token;
+    try {
+      Access_token = ensureAmoAccessToken_();
+      var cfg = getAmoCfg_();
+      if (!cfg.subdomain) throw new Error('SUBDOMAIN/AMO_SUBDOMAIN не задан');
+
+    } catch (e) {
+      console.error('Ошибка получения токена: ' + e);
+      return;
+    }
+
+    // Load cached pipelines and users; fallback to empty arrays
+    var data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines') || '[]');
+    var data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users') || '[]');
+
+    // If caches are empty, populate them
+    if (data_pipelines.length === 0) {
+      get_Pipilines(Access_token);
+      data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines') || '[]');
+    }
+    if (data_users.length === 0) {
+      get_Users(Access_token);
+      data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users') || '[]');
+    }
+
+    var map_users = data_users.reduce(function(map, user) {
+      map[user[0]] = user[1];
+      return map;
+    }, {});
+
+    var num_page_part = 1;
+    var data_to_sheet = [];
+    do {
+      if (num_page_part > num_by_part) {
+        PAGE_NUMBER = PAGE_NUMBER - 1;
+        break;
+      }
+
+      var cfg = getAmoCfg_(); // добавь ОДИН раз в начале get_Deals() после токена
+      var apiUrl = 'https://' + cfg.subdomain + '.amocrm.ru/api/v4/leads?' +
+
+        'filter[pipeline_id]=' + 6635110 +
+        '&filter[created_at][from]=1704060000' +
+        '&page=' + PAGE_NUMBER +
+        '&limit=' + RESULTS_PER_PAGE +
+        '&order[created_at]=asc' +
+        '&with=contacts,loss_reason,source_id';
+
+      var options = {
+        method: 'get',
+        headers: {
+          'Authorization': 'Bearer ' + Access_token
+        }
+      };
+      var response;
+      response = UrlFetchApp.fetch(apiUrl, options);
+
+        if (response.getResponseCode() === 401) {
+          console.warn('401 Unauthorized -> refreshing token...');
+          Access_token = refresh_AccessToken();
+          options.headers['Authorization'] = 'Bearer ' + Access_token;
+          response = UrlFetchApp.fetch(apiUrl, options);
+        }
+
+
+      var content = response.getContentText();
+      if (!content) {
+        console.error('Ошибка: ответ от сервера пуст!');
+        scriptProperties.setProperty('Amo_get_Deals_next_part', 1);
+        scriptProperties.setProperty('Amo_Pages_' + name_function, 1);
+        break;
+      }
+
+      var ApiData = JSON.parse(content);
+      var leads = (ApiData._embedded && ApiData._embedded.leads) || [];
+      for (var i = 0; i < leads.length; i++) {
+        var row_to_sheet = extract_row_field_id_(leads[i], data_pipelines, map_users);
+        data_to_sheet.push(row_to_sheet);
+      }
+
+      num_page_part++;
+      if (ApiData._links && ApiData._links.next) {
+        PAGE_NUMBER++;
+      } else {
+        scriptProperties.setProperty('Amo_get_Deals_next_part', 1);
+        scriptProperties.setProperty('Amo_Pages_' + name_function, (Number(PAGE_NUMBER) - 1));
+        break;
+      }
+    } while (true);
+
+    // Sorting, formatting and writing to sheet as before
+    data_to_sheet = sort_By_Column_(data_to_sheet, 1, 1);
+    var column_convert_number = [7, 14];
+    for (var rowIndex = 0; rowIndex < data_to_sheet.length; rowIndex++) {
+      for (var idx = 0; idx < column_convert_number.length; idx++) {
+        var colIndex = column_convert_number[idx];
+        var cell = data_to_sheet[rowIndex][colIndex];
+        if (Number(cell) > 0) {
+          data_to_sheet[rowIndex][colIndex] = String(cell).replace('.', ',');
+        }
+      }
+    }
+    var column_convert_date = [[1, 1], [2, 1], [15, 0]];
+    for (var r = 0; r < data_to_sheet.length; r++) {
+      for (var j = 0; j < column_convert_date.length; j++) {
+        var col = column_convert_date[j][0];
+        var includeTime = column_convert_date[j][1];
+        data_to_sheet[r][col] = convertUnixTimeToNormalDate_(data_to_sheet[r][col], includeTime);
+      }
+    }
+    var dlina = data_to_sheet.length;
+    var shirina = getMaxWidth(data_to_sheet);
+    if (dlina > 0) {
+      var sheet1 = SpreadsheetApp.getActive().getSheetByName('Сделки');
+      var max_dlina = RESULTS_PER_PAGE * num_by_part;
+      var row_to_set = ((RESULTS_PER_PAGE * (first_PAGE_NUMBER - 1)) + 2);
+      sheet1.getRange(row_to_set, 1, dlina, shirina).setValues(data_to_sheet);
+      if (dlina < max_dlina) {
+        var startRowToClear = row_to_set + dlina;
+        var numRowsToClear = max_dlina - dlina;
+        sheet1.getRange(startRowToClear, 1, numRowsToClear, shirina).clearContent();
+      }
+      scriptProperties.setProperty('Amo_get_Deals_next_part', Number(num_page_part_start) + 1);
+    } else {
+      scriptProperties.setProperty('Amo_get_Deals_next_part', 1);
+      scriptProperties.setProperty('Amo_Pages_' + name_function, 1);
+    }
+    SpreadsheetApp.flush();
+    var updatedAllNumPages = Number(scriptProperties.getProperty('Amo_Pages_' + name_function)) || 0;
+    sheet_history.appendRow([name_function, new Date(), num_page_part_start + '/' + Math.ceil((updatedAllNumPages / num_by_part))]);
+  } finally {
+    // Always release the lock in a finally block
+    releaseLock_('lock_key_' + name_function);
+  }
+}
+
+
+// NEXT FILE GS2
+
+
+
+function get_Deals_multiPipelines(eventTrigger, num_page_part_start) {
+  var name_function = 'get_Deals_multiPipelines';
+
+  // Удаляем/гасим возможный старый триггер (если есть такая логика)
+  try { trigger_delete_by_name('get_Deals_triger'); } catch (e) {}
+
+  // Защита от дублей запуска
+  if (isLocked_('lock_key_' + name_function)) {
+    console.error('Стоит блокировка запуска дубликата');
+    return;
+  }
+
+  // Ставим блокировку на 6 минут
+  setLock_('lock_key_' + name_function, 6);
+
+  try {
+    // ==========================
+    // НАСТРОЙКИ
+    // ==========================
+    var RESULTS_PER_PAGE = 250;
+    var SAFETY_WINDOW_SEC = 120; // 2 минуты "зазор" чтобы не пропустить обновления на границе
+
+    // общий лимит на весь запуск (а не на каждую воронку)
+    var startedAt = Date.now();
+    var MAX_RUNTIME_MS = 4.5 * 60 * 1000; // 4.5 минуты — безопасно
+    var finishedAll = true;               // если остановились по времени — не обновляем lastSync
+
+    // ==========================
+    // ТОКЕН
+    // ==========================
+    var Access_token;
+    try {
+      Access_token = ensureAmoAccessToken_();
+    } catch (e) {
+      console.error('Ошибка получения токена: ' + e);
+      return;
+    }
+
+    // ==========================
+    // LAST SYNC (для недублирования)
+    // ==========================
+    var lastSyncKey = 'Amo_multi_last_sync_ts';
+    var lastSync = Number(scriptProperties.getProperty(lastSyncKey) || 0);
+
+    // Если это первый запуск — заберём изменения за последние 7 дней
+    if (!lastSync) {
+      lastSync = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
+    }
+
+    var updatedFrom = Math.max(0, lastSync - SAFETY_WINDOW_SEC);
+    console.log('updated_from=' + updatedFrom + ' (' + new Date(updatedFrom * 1000).toLocaleString('ru') + ')');
+
+    // ==========================
+    // КЕШИ (воронки, юзеры)
+    // ==========================
+    var data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines') || '[]');
+    var data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users') || '[]');
+
+    if (data_pipelines.length === 0) {
+      get_Pipilines(Access_token);
+      data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines') || '[]');
+    }
+    if (data_users.length === 0) {
+      get_Users(Access_token);
+      data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users') || '[]');
+    }
+
+    var map_users = data_users.reduce(function (map, user) {
+      map[user[0]] = user[1];
+      return map;
+    }, {});
+
+    // ==========================
+    // ЛИСТ НАЗНАЧЕНИЯ
+    // ==========================
+    var sheet1 = SpreadsheetApp.getActive().getSheetByName('Сделки. Доп воронки');
+    if (!sheet1) {
+      throw new Error("Лист 'Сделки. Доп воронки' не найден. Создай вкладку с таким названием.");
+    }
+
+    // ==========================
+    // ГЛАВНЫЙ ЦИКЛ ПО ВОРОНКАМ
+    // ==========================
+    PIPELINES:
+    for (var p = 0; p < MULTI_PIPELINE_IDS.length; p++) {
+      var pipelineId = MULTI_PIPELINE_IDS[p];
+      console.log('--- Pipeline: ' + pipelineId + ' ---');
+
+      var PAGE_NUMBER = 1;
+
+      // Собираем пачку по pipeline за этот запуск
+      var data_to_sheet = [];
+
+      while (true) {
+        // предохранитель по времени (общий на весь запуск)
+        if (Date.now() - startedAt > MAX_RUNTIME_MS) {
+          console.warn('Stop by time limit, will continue next run');
+          finishedAll = false;
+          break; // выходим из while
+        }
+
+        var apiUrl =
+          'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/leads?' +
+          'filter[pipeline_id]=' + pipelineId +
+          '&filter[updated_at][from]=' + updatedFrom +
+          '&page=' + PAGE_NUMBER +
+          '&limit=' + RESULTS_PER_PAGE +
+          '&order[updated_at]=asc' +
+          '&with=contacts,loss_reason,source_id';
+
+        var options = {
+          method: 'get',
+          muteHttpExceptions: true,
+          headers: { 'Authorization': 'Bearer ' + Access_token }
+        };
+
+        var response = UrlFetchApp.fetch(apiUrl, options);
+
+        if (response.getResponseCode() === 401) {
+          console.warn('401 Unauthorized, refreshing token...');
+          Access_token = refresh_AccessToken();
+          options.headers['Authorization'] = 'Bearer ' + Access_token;
+          response = UrlFetchApp.fetch(apiUrl, options);
+        }
+
+        var content = response.getContentText();
+        if (!content) {
+          console.error('Ответ от сервера пуст. Pipeline=' + pipelineId + ', page=' + PAGE_NUMBER);
+          break;
+        }
+
+        var ApiData;
+        try {
+          ApiData = JSON.parse(content);
+        } catch (e) {
+          console.error('Не смог распарсить JSON. Pipeline=' + pipelineId + ', page=' + PAGE_NUMBER + ', body=' + content);
+          break;
+        }
+
+        var leads = (ApiData._embedded && ApiData._embedded.leads) ? ApiData._embedded.leads : [];
+        console.log('Pipeline ' + pipelineId + ': page ' + PAGE_NUMBER + ' leads=' + leads.length);
+
+        for (var i = 0; i < leads.length; i++) {
+          var row = extract_row_field_id_(leads[i], data_pipelines, map_users);
+          data_to_sheet.push(row);
+        }
+
+        // Если следующей страницы нет — выходим
+        if (!(ApiData._links && ApiData._links.next)) {
+          break;
+        }
+
+        PAGE_NUMBER++;
+      }
+
+      // Если остановились по времени — выходим из цикла по воронкам
+      if (!finishedAll) break PIPELINES;
+
+      // ==========================
+      // ФОРМАТИРОВАНИЕ И ЗАПИСЬ
+      // ==========================
+      if (data_to_sheet.length > 0) {
+        // сортировка по ID сделки (как у тебя)
+        data_to_sheet = sort_By_Column_(data_to_sheet, 1, 1);
+
+        // числа -> строка с запятой
+        var column_convert_number = [7, 14];
+        for (var rowIndex = 0; rowIndex < data_to_sheet.length; rowIndex++) {
+          for (var idx = 0; idx < column_convert_number.length; idx++) {
+            var colIndex = column_convert_number[idx];
+            var cell = data_to_sheet[rowIndex][colIndex];
+            if (Number(cell) > 0) {
+              data_to_sheet[rowIndex][colIndex] = String(cell).replace('.', ',');
+            }
+          }
+        }
+
+        // даты unix -> ru date
+        var column_convert_date = [[1, 1], [2, 1], [15, 0]];
+        for (var r = 0; r < data_to_sheet.length; r++) {
+          for (var j = 0; j < column_convert_date.length; j++) {
+            var col = column_convert_date[j][0];
+            var includeTime = column_convert_date[j][1];
+            data_to_sheet[r][col] = convertUnixTimeToNormalDate_(data_to_sheet[r][col], includeTime);
+          }
+        }
+
+        var dlina = data_to_sheet.length;
+
+        // UPSERT: обновление существующих + добавление новых
+        upsertDealsById_(sheet1, data_to_sheet);
+
+        console.log('Upserted ' + dlina + ' rows for pipeline ' + pipelineId);
+      } else {
+        console.log('No updates for pipeline ' + pipelineId + ' since lastSync');
+      }
+    }
+
+    SpreadsheetApp.flush();
+
+    // ==========================
+    // ОБНОВЛЯЕМ LAST SYNC ТОЛЬКО ЕСЛИ УСПЕЛИ ПРОЙТИ ВСЕ ВОРОНКИ
+    // ==========================
+    if (finishedAll) {
+      scriptProperties.setProperty(lastSyncKey, String(Math.floor(Date.now() / 1000)));
+    } else {
+      console.warn('Not updating lastSync because run was cut by time limit');
+    }
+
+    // История запусков (если sheet_history есть)
+    try {
+      sheet_history.appendRow([name_function, new Date(), 'pipelines=' + MULTI_PIPELINE_IDS.length, 'updated_from=' + updatedFrom, 'finishedAll=' + finishedAll]);
+    } catch (e) {}
+
+  } finally {
+    // Всегда снимаем блокировку
+    releaseLock_('lock_key_' + name_function);
+  }
+}
+
+
+function upsertDealsById_(sheet, rows) {
+  if (!rows || !rows.length) return;
+
+  // ВАЖНО: считаем, что ID сделки у тебя в колонке A (index 0 в массиве)
+  var ID_COL_INDEX = 0;
+  var HEADER_ROWS = 1; // строка 1 — заголовки, данные с 2-й
+
+  // Считываем все текущие ID из листа
+  var lastRow = sheet.getLastRow();
+  var existing = {};
+  if (lastRow > HEADER_ROWS) {
+    var ids = sheet.getRange(HEADER_ROWS + 1, 1, lastRow - HEADER_ROWS, 1).getValues(); // колонка A
+    for (var i = 0; i < ids.length; i++) {
+      var id = String(ids[i][0] || '').trim();
+      if (id) existing[id] = HEADER_ROWS + 1 + i; // номер строки на листе
+    }
+  }
+
+  // Разбиваем на обновления и новые
+  var updates = []; // {rowNumber, values}
+  var inserts = []; // values[]
+
+  for (var r = 0; r < rows.length; r++) {
+    var dealId = String(rows[r][ID_COL_INDEX] || '').trim();
+    if (!dealId) continue;
+
+    if (existing[dealId]) {
+      updates.push({ rowNumber: existing[dealId], values: rows[r] });
+    } else {
+      inserts.push(rows[r]);
+    }
+  }
+
+  // 1) Обновляем существующие (перезаписываем строку целиком) пачками последовательных строк
+  if (updates.length) {
+    updates.sort(function(a, b){ return a.rowNumber - b.rowNumber; });
+
+    var start = updates[0].rowNumber;
+    var batch = [updates[0].values];
+
+    for (var u = 1; u < updates.length; u++) {
+      var rn = updates[u].rowNumber;
+      if (rn === start + batch.length) {
+        batch.push(updates[u].values);
+      } else {
+        sheet.getRange(start, 1, batch.length, batch[0].length).setValues(batch);
+        start = rn;
+        batch = [updates[u].values];
+      }
+    }
+    sheet.getRange(start, 1, batch.length, batch[0].length).setValues(batch);
+  }
+
+  // 2) Добавляем новые в конец
+  if (inserts.length) {
+    var startRow = sheet.getLastRow() + 1;
+    sheet.getRange(startRow, 1, inserts.length, inserts[0].length).setValues(inserts);
+  }
+}
+
+
+
+/*
+ * This file contains the updated version of the original Apps Script used
+ * for integrating with amoCRM and Google Sheets. It introduces several
+ * improvements and safeguards to ensure that the authentication tokens
+ * are handled more robustly and that long‑running processes do not leave
+ * stale locks behind. The new helper functions make it possible to
+ * recover gracefully when tokens are missing or expired.
+ *
+ * IMPORTANT: Before running this script for the first time after the
+ * update, please add the following entries to the Script Properties via
+ * the Apps Script project settings. These values correspond to your
+ * amoCRM application credentials and the one‑time authorization code
+ * used to obtain your initial refresh token:
+ *
+ *   AMO_CLIENT_ID        – your amoCRM client ID
+ *   AMO_CLIENT_SECRET    – your amoCRM client secret
+ *   AMO_REDIRECT_URI     – redirect URI registered in amoCRM (e.g. https://script.google.com/)
+ *   AMO_AUTH_CODE        – the single‑use authorization code obtained during the OAuth flow
+ *
+ * The script will automatically exchange this code for a pair of
+ * access/refresh tokens on first use and subsequently refresh the
+ * access token using the stored refresh token.
+ */
+
+var scriptProperties = PropertiesService.getScriptProperties();
+
+function getAmoCfg_() {
+  function pickConst_(name) {
+    try {
+      if (name === 'SUBDOMAIN' && typeof SUBDOMAIN !== 'undefined') return SUBDOMAIN;
+      if (name === 'CLIENT_ID' && typeof CLIENT_ID !== 'undefined') return CLIENT_ID;
+      if (name === 'CLIENT_SECRET' && typeof CLIENT_SECRET !== 'undefined') return CLIENT_SECRET;
+      if (name === 'REDIRECT_URI' && typeof REDIRECT_URI !== 'undefined') return REDIRECT_URI;
+      if (name === 'AUTH_CODE' && typeof Code_authentication !== 'undefined') return Code_authentication;
+    } catch (e) {}
+    return null;
+  }
+
+  function pickProp_(keys) {
+    for (var i = 0; i < keys.length; i++) {
+      var v = scriptProperties.getProperty(keys[i]);
+      if (v !== null && v !== undefined && String(v).trim() !== '') return String(v).trim();
+    }
+    return null;
+  }
+
+  return {
+    subdomain: pickConst_('SUBDOMAIN') || pickProp_(['AMO_SUBDOMAIN', 'SUBDOMAIN']),
+    clientId: pickConst_('CLIENT_ID') || pickProp_(['AMO_CLIENT_ID', 'CLIENT_ID']),
+    clientSecret: pickConst_('CLIENT_SECRET') || pickProp_(['AMO_CLIENT_SECRET', 'CLIENT_SECRET']),
+    redirectUri: pickConst_('REDIRECT_URI') || pickProp_(['AMO_REDIRECT_URI', 'REDIRECT_URI']),
+    authCode: pickConst_('AUTH_CODE') || pickProp_(['AMO_AUTH_CODE', 'Code_authentication'])
+  };
+}
+
+
+// const SUBDOMAIN = 'kitchencrm';
+
+// -----------------------------------------------------------------------------
+// Helper: Obtain a valid access token from properties or refresh it
+//
+// This function encapsulates the logic required to ensure that a valid
+// Amo_Access_token is available. It tries the following in order:
+//   1. If an access token exists, return it.
+//   2. If an access token does not exist but a refresh token exists,
+//      attempt to refresh the access token. If successful, return it.
+//   3. If neither token exists, use the one‑time AMO_AUTH_CODE stored in
+//      script properties to perform the initial OAuth exchange. The
+//      resulting access and refresh tokens are saved to the standard
+//      properties (Amo_Access_token and Amo_Refresh_token). The function
+//      then returns the new access token.
+//
+// If the authorization code is invalid or has expired, an error is thrown.
+function ensureAmoAccessToken_() {
+  var access = scriptProperties.getProperty('Amo_Access_token');
+  var expiresAt = Number(scriptProperties.getProperty('Amo_Access_token_expires_at') || 0);
+
+  var now = Math.floor(Date.now() / 1000);
+  var SKEW = 60;
+
+  if (access && (!expiresAt || (now + SKEW) < expiresAt)) {
+    return access;
+  }
+
+  var refresh = scriptProperties.getProperty('Amo_Refresh_token');
+  if (refresh) {
+    return refresh_AccessToken();
+  }
+
+  var cfg = getAmoCfg_();
+
+  if (!(cfg.subdomain && cfg.clientId && cfg.clientSecret && cfg.redirectUri && cfg.authCode)) {
+    throw new Error(
+      'Missing amoCRM config. Нужно задать AMO_SUBDOMAIN, AMO_CLIENT_ID, AMO_CLIENT_SECRET, AMO_REDIRECT_URI, AMO_AUTH_CODE ' +
+      '(или объявить константы SUBDOMAIN/CLIENT_ID/CLIENT_SECRET/REDIRECT_URI/Code_authentication).'
+    );
+  }
+
+  return get_first_AccessToken_return_(cfg.clientId, cfg.clientSecret, cfg.redirectUri, cfg.authCode, cfg.subdomain);
+}
+
+// -----------------------------------------------------------------------------
+// Helper: Exchange the authorization code for access and refresh tokens
+//
+// The original get_first_AccessToken() performs the OAuth exchange but
+// assumes that CLIENT_ID, CLIENT_SECRET, Code_authentication and
+// REDIRECT_URI are available as constants. This new version accepts the
+// parameters explicitly and returns the access token. It also writes both
+// tokens into the standard properties (Amo_Access_token and Amo_Refresh_token).
+function get_first_AccessToken_return_(clientId, clientSecret, redirectUri, authorizationCode, subdomain) {
+  if (!subdomain) {
+    subdomain = getAmoCfg_().subdomain;
+  }
+  if (!subdomain) throw new Error('SUBDOMAIN/AMO_SUBDOMAIN не задан');
+
+  var tokenUrl = 'https://' + subdomain + '.amocrm.ru/oauth2/access_token';
+
+  var payloadObj = {
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: 'authorization_code',
+    code: authorizationCode,
+    redirect_uri: redirectUri
+  };
+
+  var options = {
+    method: 'post',
+    muteHttpExceptions: true,
+    contentType: 'application/json',
+    payload: JSON.stringify(payloadObj)
+  };
+
+  var response = UrlFetchApp.fetch(tokenUrl, options);
+  var code = response.getResponseCode();
+  var body = response.getContentText();
+
+  if (code < 200 || code >= 300) {
+    throw new Error('OAuth exchange failed. HTTP ' + code + ' body=' + body);
+  }
+
+  var tokenData = JSON.parse(body);
+  if (!tokenData.access_token || !tokenData.refresh_token) {
+    throw new Error('OAuth exchange: нет access_token/refresh_token. body=' + body);
+  }
+
+  scriptProperties.setProperty('Amo_Access_token', tokenData.access_token);
+  scriptProperties.setProperty('Amo_Refresh_token', tokenData.refresh_token);
+
+  if (tokenData.expires_in) {
+    var expiresAt = Math.floor(Date.now() / 1000) + Number(tokenData.expires_in);
+    scriptProperties.setProperty('Amo_Access_token_expires_at', String(expiresAt));
+  }
+
+  try { get_Pipilines(tokenData.access_token); } catch (e) { console.warn('get_Pipilines failed: ' + e); }
+  try { get_Deal_Custom_fields(tokenData.access_token); } catch (e) { console.warn('get_Deal_Custom_fields failed: ' + e); }
+  try { get_Users(tokenData.access_token); } catch (e) { console.warn('get_Users failed: ' + e); }
+
+  return tokenData.access_token;
+}
+
+
+// -----------------------------------------------------------------------------
+// Safe refresh token logic
+//
+// The original refresh_AccessToken() always overwrote the stored
+// Amo_Refresh_token regardless of whether the new refresh token was present in
+// the response. This safer version only updates the refresh token when it
+// exists in the response. It also throws an error when the access token
+// cannot be refreshed so that callers can handle it appropriately.
+function refresh_AccessToken() {
+  var cfg = getAmoCfg_();
+
+  if (!cfg.subdomain) throw new Error('SUBDOMAIN не задан. Задай const SUBDOMAIN или Script Property AMO_SUBDOMAIN');
+  if (!cfg.clientId) throw new Error('CLIENT_ID не задан. Задай const CLIENT_ID или Script Property AMO_CLIENT_ID');
+  if (!cfg.clientSecret) throw new Error('CLIENT_SECRET не задан. Задай const CLIENT_SECRET или Script Property AMO_CLIENT_SECRET');
+
+  var refreshToken = scriptProperties.getProperty('Amo_Refresh_token');
+  if (!refreshToken) throw new Error('Amo_Refresh_token пуст в Script Properties');
+
+  var tokenUrl = 'https://' + cfg.subdomain + '.amocrm.ru/oauth2/access_token';
+
+  var payloadObj = {
+    client_id: cfg.clientId,
+    client_secret: cfg.clientSecret,
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken
+  };
+
+  var options = {
+    method: 'post',
+    muteHttpExceptions: true,
+    contentType: 'application/json',
+    payload: JSON.stringify(payloadObj)
+  };
+
+  var response = UrlFetchApp.fetch(tokenUrl, options);
+  var code = response.getResponseCode();
+  var body = response.getContentText();
+
+  if (code < 200 || code >= 300) {
+    throw new Error('refresh_AccessToken failed. HTTP ' + code + ' body=' + body);
+  }
+
+  var tokenData = JSON.parse(body);
+  if (!tokenData.access_token) {
+    throw new Error('refresh_AccessToken: в ответе нет access_token. body=' + body);
+  }
+
+  scriptProperties.setProperty('Amo_Access_token', tokenData.access_token);
+
+  if (tokenData.refresh_token) {
+    scriptProperties.setProperty('Amo_Refresh_token', tokenData.refresh_token);
+  }
+
+  if (tokenData.expires_in) {
+    var expiresAt = Math.floor(Date.now() / 1000) + Number(tokenData.expires_in);
+    scriptProperties.setProperty('Amo_Access_token_expires_at', String(expiresAt));
+  }
+
+  try { get_Pipilines(tokenData.access_token); } catch (e) { console.warn('get_Pipilines failed: ' + e); }
+  try { get_Deal_Custom_fields(tokenData.access_token); } catch (e) { console.warn('get_Deal_Custom_fields failed: ' + e); }
+  try { get_Users(tokenData.access_token); } catch (e) { console.warn('get_Users failed: ' + e); }
+
+  return tokenData.access_token;
+}
+
+
+
+// -----------------------------------------------------------------------------
+// Updated get_Deals with safe token retrieval, cache handling and lock cleanup
+//
+// This version of get_Deals uses ensureAmoAccessToken_() to obtain a valid
+// access token. It also checks that cached arrays exist before attempting
+// to iterate through them. Missing caches are populated on the fly via
+// get_Pipilines() and get_Users(). The entire body of the function is
+// wrapped in try/finally to guarantee that any acquired lock is released
+// even if an error occurs.
+function get_Deals(eventTrigger, num_page_part_start) {
+  if (num_page_part_start === undefined) {
+    num_page_part_start = Number(scriptProperties.getProperty('Amo_get_Deals_next_part')) || 1;
+  }
+
+  var name_function = new Error().stack.match(/at\s+([^\s\(]+)/)[1];
+  trigger_delete_by_name('get_Deals_triger');
+
+  // If a lock already exists, abort
+  if (isLocked_('lock_key_' + name_function)) {
+    console.error('Стоит блокировка запуска дубликата');
+    return;
+  }
+
+  // Acquire lock for 6 minutes
+  setLock_('lock_key_' + name_function, 6);
+
+  try {
+    var num_by_part = 2;
+    var first_PAGE_NUMBER = (num_page_part_start * num_by_part) - 1;
+    var PAGE_NUMBER = first_PAGE_NUMBER;
+    var RESULTS_PER_PAGE = 250;
+    var all_num_pages = Number(scriptProperties.getProperty('Amo_Pages_' + name_function)) || 0;
+
+    // Obtain a valid access token using the helper
+    var Access_token;
+    try {
+      Access_token = ensureAmoAccessToken_();
+      var cfg = getAmoCfg_();
+      if (!cfg.subdomain) throw new Error('SUBDOMAIN/AMO_SUBDOMAIN не задан');
+
+    } catch (e) {
+      console.error('Ошибка получения токена: ' + e);
+      return;
+    }
+
+    // Load cached pipelines and users; fallback to empty arrays
+    var data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines') || '[]');
+    var data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users') || '[]');
+
+    // If caches are empty, populate them
+    if (data_pipelines.length === 0) {
+      get_Pipilines(Access_token);
+      data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines') || '[]');
+    }
+    if (data_users.length === 0) {
+      get_Users(Access_token);
+      data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users') || '[]');
+    }
+
+    var map_users = data_users.reduce(function(map, user) {
+      map[user[0]] = user[1];
+      return map;
+    }, {});
+
+    var num_page_part = 1;
+    var data_to_sheet = [];
+    do {
+      if (num_page_part > num_by_part) {
+        PAGE_NUMBER = PAGE_NUMBER - 1;
+        break;
+      }
+
+      var cfg = getAmoCfg_(); // добавь ОДИН раз в начале get_Deals() после токена
+      var apiUrl = 'https://' + cfg.subdomain + '.amocrm.ru/api/v4/leads?' +
+
+        'filter[pipeline_id]=' + 6635110 +
+        '&filter[created_at][from]=1704060000' +
+        '&page=' + PAGE_NUMBER +
+        '&limit=' + RESULTS_PER_PAGE +
+        '&order[created_at]=asc' +
+        '&with=contacts,loss_reason,source_id';
+
+      var options = {
+        method: 'get',
+        headers: {
+          'Authorization': 'Bearer ' + Access_token
+        }
+      };
+      var response;
+      response = UrlFetchApp.fetch(apiUrl, options);
+
+        if (response.getResponseCode() === 401) {
+          console.warn('401 Unauthorized -> refreshing token...');
+          Access_token = refresh_AccessToken();
+          options.headers['Authorization'] = 'Bearer ' + Access_token;
+          response = UrlFetchApp.fetch(apiUrl, options);
+        }
+
+
+      var content = response.getContentText();
+      if (!content) {
+        console.error('Ошибка: ответ от сервера пуст!');
+        scriptProperties.setProperty('Amo_get_Deals_next_part', 1);
+        scriptProperties.setProperty('Amo_Pages_' + name_function, 1);
+        break;
+      }
+
+      var ApiData = JSON.parse(content);
+      var leads = (ApiData._embedded && ApiData._embedded.leads) || [];
+      for (var i = 0; i < leads.length; i++) {
+        var row_to_sheet = extract_row_field_id_(leads[i], data_pipelines, map_users);
+        data_to_sheet.push(row_to_sheet);
+      }
+
+      num_page_part++;
+      if (ApiData._links && ApiData._links.next) {
+        PAGE_NUMBER++;
+      } else {
+        scriptProperties.setProperty('Amo_get_Deals_next_part', 1);
+        scriptProperties.setProperty('Amo_Pages_' + name_function, (Number(PAGE_NUMBER) - 1));
+        break;
+      }
+    } while (true);
+
+    // Sorting, formatting and writing to sheet as before
+    data_to_sheet = sort_By_Column_(data_to_sheet, 1, 1);
+    var column_convert_number = [7, 14];
+    for (var rowIndex = 0; rowIndex < data_to_sheet.length; rowIndex++) {
+      for (var idx = 0; idx < column_convert_number.length; idx++) {
+        var colIndex = column_convert_number[idx];
+        var cell = data_to_sheet[rowIndex][colIndex];
+        if (Number(cell) > 0) {
+          data_to_sheet[rowIndex][colIndex] = String(cell).replace('.', ',');
+        }
+      }
+    }
+    var column_convert_date = [[1, 1], [2, 1], [15, 0]];
+    for (var r = 0; r < data_to_sheet.length; r++) {
+      for (var j = 0; j < column_convert_date.length; j++) {
+        var col = column_convert_date[j][0];
+        var includeTime = column_convert_date[j][1];
+        data_to_sheet[r][col] = convertUnixTimeToNormalDate_(data_to_sheet[r][col], includeTime);
+      }
+    }
+    var dlina = data_to_sheet.length;
+    var shirina = getMaxWidth(data_to_sheet);
+    if (dlina > 0) {
+      var sheet1 = SpreadsheetApp.getActive().getSheetByName('Сделки');
+      var max_dlina = RESULTS_PER_PAGE * num_by_part;
+      var row_to_set = ((RESULTS_PER_PAGE * (first_PAGE_NUMBER - 1)) + 2);
+      sheet1.getRange(row_to_set, 1, dlina, shirina).setValues(data_to_sheet);
+      if (dlina < max_dlina) {
+        var startRowToClear = row_to_set + dlina;
+        var numRowsToClear = max_dlina - dlina;
+        sheet1.getRange(startRowToClear, 1, numRowsToClear, shirina).clearContent();
+      }
+      scriptProperties.setProperty('Amo_get_Deals_next_part', Number(num_page_part_start) + 1);
+    } else {
+      scriptProperties.setProperty('Amo_get_Deals_next_part', 1);
+      scriptProperties.setProperty('Amo_Pages_' + name_function, 1);
+    }
+    SpreadsheetApp.flush();
+    var updatedAllNumPages = Number(scriptProperties.getProperty('Amo_Pages_' + name_function)) || 0;
+    sheet_history.appendRow([name_function, new Date(), num_page_part_start + '/' + Math.ceil((updatedAllNumPages / num_by_part))]);
+  } finally {
+    // Always release the lock in a finally block
+    releaseLock_('lock_key_' + name_function);
+  }
+}
+
+
+
+function get_Deals_multiPipelines(eventTrigger, num_page_part_start) {
+  var name_function = 'get_Deals_multiPipelines';
+
+  // Удаляем/гасим возможный старый триггер (если есть такая логика)
+  try { trigger_delete_by_name('get_Deals_triger'); } catch (e) {}
+
+  // Защита от дублей запуска
+  if (isLocked_('lock_key_' + name_function)) {
+    console.error('Стоит блокировка запуска дубликата');
+    return;
+  }
+
+  // Ставим блокировку на 6 минут
+  setLock_('lock_key_' + name_function, 6);
+
+  try {
+    // ==========================
+    // НАСТРОЙКИ
+    // ==========================
+    var RESULTS_PER_PAGE = 250;
+    var SAFETY_WINDOW_SEC = 120; // 2 минуты "зазор" чтобы не пропустить обновления на границе
+
+    // общий лимит на весь запуск (а не на каждую воронку)
+    var startedAt = Date.now();
+    var MAX_RUNTIME_MS = 4.5 * 60 * 1000; // 4.5 минуты — безопасно
+    var finishedAll = true;               // если остановились по времени — не обновляем lastSync
+
+    // ==========================
+    // ТОКЕН
+    // ==========================
+    var Access_token;
+    try {
+      Access_token = ensureAmoAccessToken_();
+    } catch (e) {
+      console.error('Ошибка получения токена: ' + e);
+      return;
+    }
+
+    // ==========================
+    // LAST SYNC (для недублирования)
+    // ==========================
+    var lastSyncKey = 'Amo_multi_last_sync_ts';
+    var lastSync = Number(scriptProperties.getProperty(lastSyncKey) || 0);
+
+    // Если это первый запуск — заберём изменения за последние 7 дней
+    if (!lastSync) {
+      lastSync = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
+    }
+
+    var updatedFrom = Math.max(0, lastSync - SAFETY_WINDOW_SEC);
+    console.log('updated_from=' + updatedFrom + ' (' + new Date(updatedFrom * 1000).toLocaleString('ru') + ')');
+
+    // ==========================
+    // КЕШИ (воронки, юзеры)
+    // ==========================
+    var data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines') || '[]');
+    var data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users') || '[]');
+
+    if (data_pipelines.length === 0) {
+      get_Pipilines(Access_token);
+      data_pipelines = JSON.parse(scriptProperties.getProperty('Amo_Data_pipelines') || '[]');
+    }
+    if (data_users.length === 0) {
+      get_Users(Access_token);
+      data_users = JSON.parse(scriptProperties.getProperty('Amo_Data_users') || '[]');
+    }
+
+    var map_users = data_users.reduce(function (map, user) {
+      map[user[0]] = user[1];
+      return map;
+    }, {});
+
+    // ==========================
+    // ЛИСТ НАЗНАЧЕНИЯ
+    // ==========================
+    var sheet1 = SpreadsheetApp.getActive().getSheetByName('Сделки. Доп воронки');
+    if (!sheet1) {
+      throw new Error("Лист 'Сделки. Доп воронки' не найден. Создай вкладку с таким названием.");
+    }
+
+    // ==========================
+    // ГЛАВНЫЙ ЦИКЛ ПО ВОРОНКАМ
+    // ==========================
+    PIPELINES:
+    for (var p = 0; p < MULTI_PIPELINE_IDS.length; p++) {
+      var pipelineId = MULTI_PIPELINE_IDS[p];
+      console.log('--- Pipeline: ' + pipelineId + ' ---');
+
+      var PAGE_NUMBER = 1;
+
+      // Собираем пачку по pipeline за этот запуск
+      var data_to_sheet = [];
+
+      while (true) {
+        // предохранитель по времени (общий на весь запуск)
+        if (Date.now() - startedAt > MAX_RUNTIME_MS) {
+          console.warn('Stop by time limit, will continue next run');
+          finishedAll = false;
+          break; // выходим из while
+        }
+
+        var apiUrl =
+          'https://' + SUBDOMAIN + '.amocrm.ru/api/v4/leads?' +
+          'filter[pipeline_id]=' + pipelineId +
+          '&filter[updated_at][from]=' + updatedFrom +
+          '&page=' + PAGE_NUMBER +
+          '&limit=' + RESULTS_PER_PAGE +
+          '&order[updated_at]=asc' +
+          '&with=contacts,loss_reason,source_id';
+
+        var options = {
+          method: 'get',
+          muteHttpExceptions: true,
+          headers: { 'Authorization': 'Bearer ' + Access_token }
+        };
+
+        var response = UrlFetchApp.fetch(apiUrl, options);
+
+        if (response.getResponseCode() === 401) {
+          console.warn('401 Unauthorized, refreshing token...');
+          Access_token = refresh_AccessToken();
+          options.headers['Authorization'] = 'Bearer ' + Access_token;
+          response = UrlFetchApp.fetch(apiUrl, options);
+        }
+
+        var content = response.getContentText();
+        if (!content) {
+          console.error('Ответ от сервера пуст. Pipeline=' + pipelineId + ', page=' + PAGE_NUMBER);
+          break;
+        }
+
+        var ApiData;
+        try {
+          ApiData = JSON.parse(content);
+        } catch (e) {
+          console.error('Не смог распарсить JSON. Pipeline=' + pipelineId + ', page=' + PAGE_NUMBER + ', body=' + content);
+          break;
+        }
+
+        var leads = (ApiData._embedded && ApiData._embedded.leads) ? ApiData._embedded.leads : [];
+        console.log('Pipeline ' + pipelineId + ': page ' + PAGE_NUMBER + ' leads=' + leads.length);
+
+        for (var i = 0; i < leads.length; i++) {
+          var row = extract_row_field_id_(leads[i], data_pipelines, map_users);
+          data_to_sheet.push(row);
+        }
+
+        // Если следующей страницы нет — выходим
+        if (!(ApiData._links && ApiData._links.next)) {
+          break;
+        }
+
+        PAGE_NUMBER++;
+      }
+
+      // Если остановились по времени — выходим из цикла по воронкам
+      if (!finishedAll) break PIPELINES;
+
+      // ==========================
+      // ФОРМАТИРОВАНИЕ И ЗАПИСЬ
+      // ==========================
+      if (data_to_sheet.length > 0) {
+        // сортировка по ID сделки (как у тебя)
+        data_to_sheet = sort_By_Column_(data_to_sheet, 1, 1);
+
+        // числа -> строка с запятой
+        var column_convert_number = [7, 14];
+        for (var rowIndex = 0; rowIndex < data_to_sheet.length; rowIndex++) {
+          for (var idx = 0; idx < column_convert_number.length; idx++) {
+            var colIndex = column_convert_number[idx];
+            var cell = data_to_sheet[rowIndex][colIndex];
+            if (Number(cell) > 0) {
+              data_to_sheet[rowIndex][colIndex] = String(cell).replace('.', ',');
+            }
+          }
+        }
+
+        // даты unix -> ru date
+        var column_convert_date = [[1, 1], [2, 1], [15, 0]];
+        for (var r = 0; r < data_to_sheet.length; r++) {
+          for (var j = 0; j < column_convert_date.length; j++) {
+            var col = column_convert_date[j][0];
+            var includeTime = column_convert_date[j][1];
+            data_to_sheet[r][col] = convertUnixTimeToNormalDate_(data_to_sheet[r][col], includeTime);
+          }
+        }
+
+        var dlina = data_to_sheet.length;
+
+        // UPSERT: обновление существующих + добавление новых
+        upsertDealsById_(sheet1, data_to_sheet);
+
+        console.log('Upserted ' + dlina + ' rows for pipeline ' + pipelineId);
+      } else {
+        console.log('No updates for pipeline ' + pipelineId + ' since lastSync');
+      }
+    }
+
+    SpreadsheetApp.flush();
+
+    // ==========================
+    // ОБНОВЛЯЕМ LAST SYNC ТОЛЬКО ЕСЛИ УСПЕЛИ ПРОЙТИ ВСЕ ВОРОНКИ
+    // ==========================
+    if (finishedAll) {
+      scriptProperties.setProperty(lastSyncKey, String(Math.floor(Date.now() / 1000)));
+    } else {
+      console.warn('Not updating lastSync because run was cut by time limit');
+    }
+
+    // История запусков (если sheet_history есть)
+    try {
+      sheet_history.appendRow([name_function, new Date(), 'pipelines=' + MULTI_PIPELINE_IDS.length, 'updated_from=' + updatedFrom, 'finishedAll=' + finishedAll]);
+    } catch (e) {}
+
+  } finally {
+    // Всегда снимаем блокировку
+    releaseLock_('lock_key_' + name_function);
+  }
+}
+
+
+function upsertDealsById_(sheet, rows) {
+  if (!rows || !rows.length) return;
+
+  // ВАЖНО: считаем, что ID сделки у тебя в колонке A (index 0 в массиве)
+  var ID_COL_INDEX = 0;
+  var HEADER_ROWS = 1; // строка 1 — заголовки, данные с 2-й
+
+  // Считываем все текущие ID из листа
+  var lastRow = sheet.getLastRow();
+  var existing = {};
+  if (lastRow > HEADER_ROWS) {
+    var ids = sheet.getRange(HEADER_ROWS + 1, 1, lastRow - HEADER_ROWS, 1).getValues(); // колонка A
+    for (var i = 0; i < ids.length; i++) {
+      var id = String(ids[i][0] || '').trim();
+      if (id) existing[id] = HEADER_ROWS + 1 + i; // номер строки на листе
+    }
+  }
+
+  // Разбиваем на обновления и новые
+  var updates = []; // {rowNumber, values}
+  var inserts = []; // values[]
+
+  for (var r = 0; r < rows.length; r++) {
+    var dealId = String(rows[r][ID_COL_INDEX] || '').trim();
+    if (!dealId) continue;
+
+    if (existing[dealId]) {
+      updates.push({ rowNumber: existing[dealId], values: rows[r] });
+    } else {
+      inserts.push(rows[r]);
+    }
+  }
+
+  // 1) Обновляем существующие (перезаписываем строку целиком) пачками последовательных строк
+  if (updates.length) {
+    updates.sort(function(a, b){ return a.rowNumber - b.rowNumber; });
+
+    var start = updates[0].rowNumber;
+    var batch = [updates[0].values];
+
+    for (var u = 1; u < updates.length; u++) {
+      var rn = updates[u].rowNumber;
+      if (rn === start + batch.length) {
+        batch.push(updates[u].values);
+      } else {
+        sheet.getRange(start, 1, batch.length, batch[0].length).setValues(batch);
+        start = rn;
+        batch = [updates[u].values];
+      }
+    }
+    sheet.getRange(start, 1, batch.length, batch[0].length).setValues(batch);
+  }
+
+  // 2) Добавляем новые в конец
+  if (inserts.length) {
+    var startRow = sheet.getLastRow() + 1;
+    sheet.getRange(startRow, 1, inserts.length, inserts[0].length).setValues(inserts);
+  }
+}
