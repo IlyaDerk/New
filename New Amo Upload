@@ -1,0 +1,87 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/docs/amo_token_clean_snippet.gs b/docs/amo_token_clean_snippet.gs
+new file mode 100644
+index 0000000000000000000000000000000000000000..0fbdefef8ee0f90bdbdda33dc9382257f75aedac
+--- /dev/null
++++ b/docs/amo_token_clean_snippet.gs
+@@ -0,0 +1,77 @@
++/**
++ * Clean amoCRM token block for Apps Script.
++ *
++ * Depends on:
++ * - scriptProperties = PropertiesService.getScriptProperties()
++ * - getAmoCfg_()
++ * - get_first_AccessToken_return_()
++ */
++
++function get_first_AccessToken() {
++  var cfg = getAmoCfg_();
++
++  if (!cfg.subdomain) throw new Error('SUBDOMAIN не задан. Задай const SUBDOMAIN или Script Property AMO_SUBDOMAIN');
++  if (!cfg.clientId) throw new Error('CLIENT_ID не задан. Задай const CLIENT_ID или Script Property AMO_CLIENT_ID');
++  if (!cfg.clientSecret) throw new Error('CLIENT_SECRET не задан. Задай const CLIENT_SECRET или Script Property AMO_CLIENT_SECRET');
++  if (!cfg.redirectUri) throw new Error('REDIRECT_URI не задан. Задай const REDIRECT_URI или Script Property AMO_REDIRECT_URI');
++  if (!cfg.authCode) throw new Error('Код авторизации не задан. Задай const Code_authentication/AUTH_CODE или Script Property AMO_AUTH_CODE');
++
++  return get_first_AccessToken_return_(
++    cfg.clientId,
++    cfg.clientSecret,
++    cfg.redirectUri,
++    cfg.authCode,
++    cfg.subdomain
++  );
++}
++
++function refresh_AccessToken() {
++  var cfg = getAmoCfg_();
++
++  if (!cfg.subdomain) throw new Error('SUBDOMAIN не задан. Задай const SUBDOMAIN или Script Property AMO_SUBDOMAIN');
++  if (!cfg.clientId) throw new Error('CLIENT_ID не задан. Задай const CLIENT_ID или Script Property AMO_CLIENT_ID');
++  if (!cfg.clientSecret) throw new Error('CLIENT_SECRET не задан. Задай const CLIENT_SECRET или Script Property AMO_CLIENT_SECRET');
++
++  var refreshToken = scriptProperties.getProperty('Amo_Refresh_token');
++  if (!refreshToken) throw new Error('Amo_Refresh_token пуст в Script Properties');
++
++  var tokenUrl = 'https://' + cfg.subdomain + '.amocrm.ru/oauth2/access_token';
++  var payloadObj = {
++    client_id: cfg.clientId,
++    client_secret: cfg.clientSecret,
++    grant_type: 'refresh_token',
++    refresh_token: refreshToken
++  };
++
++  var response = UrlFetchApp.fetch(tokenUrl, {
++    method: 'post',
++    muteHttpExceptions: true,
++    contentType: 'application/json',
++    payload: JSON.stringify(payloadObj)
++  });
++
++  var code = response.getResponseCode();
++  var body = response.getContentText();
++
++  if (code < 200 || code >= 300) {
++    throw new Error('refresh_AccessToken failed. HTTP ' + code + ' body=' + body);
++  }
++
++  var tokenData = JSON.parse(body);
++  if (!tokenData.access_token) {
++    throw new Error('refresh_AccessToken: в ответе нет access_token. body=' + body);
++  }
++
++  // Always save fresh access token; save refresh token when amoCRM returned a new one.
++  scriptProperties.setProperty('Amo_Access_token', tokenData.access_token);
++  if (tokenData.refresh_token) {
++    scriptProperties.setProperty('Amo_Refresh_token', tokenData.refresh_token);
++  }
++
++  if (tokenData.expires_in) {
++    var expiresAt = Math.floor(Date.now() / 1000) + Number(tokenData.expires_in);
++    scriptProperties.setProperty('Amo_Access_token_expires_at', String(expiresAt));
++  }
++
++  return tokenData.access_token;
++}
+ 
+EOF
+)
